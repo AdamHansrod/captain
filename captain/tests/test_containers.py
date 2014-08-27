@@ -85,8 +85,7 @@ class TestContainer(unittest.TestCase):
         self.assertEqual(self.container["node"], "localhost")
 
     def test_container_ip_attribute(self):
-        self.assertEqual(self.container["ip"], "localhost")
-        self.assertEqual(self.container["ip"], self.container["node"])
+        self.assertEqual(self.container["ip"], "127.0.0.1")
 
     def test_container_port_attribute(self):
         self.assertEqual(self.container["port"], self.container_details["port"])
