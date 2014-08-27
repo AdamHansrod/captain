@@ -23,38 +23,30 @@ $ nosetests --with-xunit --xunit-file=target/nosetests.xml --with-xcover \
 
 ##The API
 
--------------------------------------------------
- Title            Request All Apps               
------------------ -------------------------------
- URL              /apps/                         
-
- Methods          GET                            
-
- URL Params       None                           
-
- Request Body     None                           
-
- Success Response Code: 200                      
-                  Content-Type: application/json 
-
- Error Response   Code: 5XX                      
-
- Request Example  Request:
-                  curl /apps/
-                  Response:
-                  {"<app name>":
-                    [
-                      {  "app": "<app name>",
-                          "id": "<container ID>",
-                          "ip": "<docker host IP>",
-                          "node": "<docker hostname>",
-                          "port": <exposed port>,
-                          "running": <boolean>,
-                          "version": "<application version>"
-                      }
-                    ]
-                  }
--------------------------------------------------
+<TABLE>
+<TR><TH>Title</TH><TH>Request All Apps</TH></TR>
+<TR><TD>URL</TD><TD>/apps/</TD></TR>
+<TR><TD>Methods</TD><TD>GET</TD></TR>                            
+<TR><TD>URL Params</TD><TD>None</TD></TR>                           
+<TR><TD>Request Body</TD><TD>None</TD></TR>                           
+<TR><TD>Success Response</TD><TD>Code: 200<BR/>Content-Type: application/json</TD></TR> 
+<TR><TD>Error Response</TD><TD>Code: 5XX</TD></TR>                      
+<TR><TD>Request Example</TD><TD>Request:<BR/>
+                  curl /apps/<BR/>
+                  Response:<BR/>
+<PRE>{"app name":
+  [
+    {  "app": "app name",
+      "id": "container ID",
+      "ip": "docker host IP",
+      "node": "docker hostname",
+      "port": exposed port,
+      "running": boolean,
+      "version": "application version"
+    }
+  ]
+}</PRE></TD></TR>
+</TABLE>
 
 
 
