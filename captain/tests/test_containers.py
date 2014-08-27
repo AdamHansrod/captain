@@ -1,4 +1,5 @@
 import unittest
+import socket
 import captain
 from mock import patch
 from mocked_dockerpy_output import ClientMock, containers
@@ -92,7 +93,7 @@ class TestContainer(unittest.TestCase):
     def test_container_ip_attribute(self):
         for container_details in containers:
             container = self.get_container(container_details)
-            self.assertEqual(container["ip"], "localhost")
+            self.assertEqual(container["ip"], socket.gethostbyname("localhost"))
 
     def test_container_port_attribute(self):
         for container_details in containers:
