@@ -32,16 +32,19 @@ class App(list):
 
 
 class Connection(object):
-    def __init__(self, nodes):
+    def __init__(self, nodes, verify=False):
         self.node_connections = {}
         for node in nodes:
             address = urlparse(node)
-            # docker.Client(base_url='{}://{}:{}'.format(node, DOCKER_PORT),
-            #     version='1.12', timeout=20)
-            # docker_conn.headers["Host"] = "docker-api"
-            # this might work
-            self.node_connections[address.hostname] = docker.Client(
-                base_url=node, version='1.12', timeout=20)
+            if address.port:
+                docker_conn = docker.Client(base_url="{}://{}:{}".format(address.scheme, address.hostname, address.port),
+                     version='1.12', timeout=20)
+            else:
+                docker_conn = docker.Client(base_url="{}://{}".format(address.scheme, address.hostname),
+                     version='1.12', timeout=20)
+            docker_conn.verify = verify
+            docker_conn.auth = (address.username, address.password)
+            self.node_connections[address.hostname] = docker_conn
 
     def __get_all_containers(self):
         all_containers = []
