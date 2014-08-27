@@ -90,3 +90,7 @@ class TestContainer(unittest.TestCase):
 
     def test_container_port_attribute(self):
         self.assertEqual(self.container["port"], self.container_details["port"])
+
+    def test_container_running_attribute(self):
+        self.assertEqual(self.container["running"], self.container_details["running"])
+
