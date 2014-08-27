@@ -27,12 +27,18 @@ $ nosetests --with-xunit --xunit-file=target/nosetests.xml --with-xcover \
  Title            Request All Apps               
 ----------------- -------------------------------
  URL              /apps/                         
+
  Methods          GET                            
+
  URL Params       None                           
+
  Request Body     None                           
+
  Success Response Code: 200                      
                   Content-Type: application/json 
+
  Error Response   Code: 5XX                      
+
  Request Example  Request:
                   curl /apps/
                   Response:
