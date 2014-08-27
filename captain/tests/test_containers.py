@@ -68,28 +68,38 @@ class TestContainer(unittest.TestCase):
     MockDockerClient = ClientMock()
 
     @patch('docker.Client', new=MockDockerClient)
-    def setUp(self):
-        self.container_details = containers[0]
-        self.container = captain.Container(
+    def get_container(self, container_details):
+        return captain.Container(
             docker_connection=self.MockDockerClient(),
             node="localhost",
-            container_id=self.container_details["id"])
+            container_id=container_details["id"])
 
     def test_container_name_attribute(self):
-        self.assertEqual(self.container["app"], self.container_details["app"])
+        for container_details in containers:
+            container = self.get_container(container_details)
+            self.assertEqual(container["app"], container_details["app"])
 
     def test_container_version_attribute(self):
-        self.assertEqual(self.container["version"], self.container_details["version"])
+        for container_details in containers:
+            container = self.get_container(container_details)
+            self.assertEqual(container["version"], container_details["version"])
 
     def test_container_node_attribute(self):
-        self.assertEqual(self.container["node"], "localhost")
+        for container_details in containers:
+            container = self.get_container(container_details)
+            self.assertEqual(container["node"], "localhost")
 
     def test_container_ip_attribute(self):
-        self.assertEqual(self.container["ip"], "127.0.0.1")
+        for container_details in containers:
+            container = self.get_container(container_details)
+            self.assertEqual(self.container["ip"], "127.0.0.1")
 
     def test_container_port_attribute(self):
-        self.assertEqual(self.container["port"], self.container_details["port"])
+        for container_details in containers:
+            container = self.get_container(container_details)
+            self.assertEqual(container["port"], container_details["port"])
 
     def test_container_running_attribute(self):
-        self.assertEqual(self.container["running"], self.container_details["running"])
-
+        for container_details in containers:
+            container = self.get_container(container_details)
+            self.assertEqual(container["running"], container_details["running"])
