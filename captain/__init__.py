@@ -1,4 +1,5 @@
 import docker
+import socket
 from urlparse import urlparse
 
 
@@ -13,7 +14,7 @@ class Container(dict):
             self["version"] = None
         self["node"] = node
         self["running"] = container_details["State"]["Running"]
-        self["ip"] = node
+        self["ip"] = socket.gethostbyname(node)
         self["port"] = int(container_details["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"])
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(container_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
