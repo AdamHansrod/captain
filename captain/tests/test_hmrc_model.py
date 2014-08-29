@@ -1,39 +1,17 @@
 import unittest
 import socket
-import captain
 from mock import patch
-from mocked_dockerpy_output import ClientMock, containers
+from captain.hmrc_connection import Connection
+from captain.hmrc_model import Instance, Application
+from util_mock import ClientMock, containers
 
 
-class TestConnection(unittest.TestCase):
+class TestApplication(unittest.TestCase):
     MockDockerClient = ClientMock()
 
     @patch('docker.Client', new=MockDockerClient)
     def setUp(self):
-        self.connection = captain.Connection(nodes=["http://user:pass@localhost:80/"])
-
-    def test_returns_connection(self):
-        self.assertEquals(type(self.connection), captain.Connection)
-        self.assertTrue(self.MockDockerClient.called)
-
-    def test_get_container(self):
-        node = "localhost"
-        container_details = containers[0]
-        container_id = container_details["id"]
-        container1 = self.connection.get_container(node, container_id)
-        container2 = captain.Container(self.MockDockerClient(), node, container_id)
-        different_container_id = containers[1]["id"]
-        different_container = captain.Container(self.MockDockerClient(), node, different_container_id)
-        self.assertEquals(container1, container2)
-        self.assertNotEquals(container1, different_container)
-
-
-class TestApp(unittest.TestCase):
-    MockDockerClient = ClientMock()
-
-    @patch('docker.Client', new=MockDockerClient)
-    def setUp(self):
-        self.connection = captain.Connection(nodes=["http://user:pass@localhost:80/"])
+        self.connection = Connection(nodes=["http://user:pass@localhost:80/"])
 
     def test_apps(self):
         node = "localhost"
@@ -43,26 +21,10 @@ class TestApp(unittest.TestCase):
             if container_details["app"] != app_name:
                 continue
             app_container_id = container_details["id"]
-            app_containers.append(captain.Container(self.MockDockerClient(), node, app_container_id))
-        app = captain.App(name=app_name, containers=app_containers)
+            app_containers.append(Instance(self.MockDockerClient(), node, app_container_id))
+        app = Application(name=app_name, instances=app_containers)
         self.assertEquals(app, self.connection.get_all_apps()[app_name])
         self.assertTrue(len(app) > 0)
-
-
-class TestWierdContainersPresent(unittest.TestCase):
-    MockDockerClient = ClientMock()
-
-    @patch('docker.Client', new=MockDockerClient)
-    def setUp(self):
-        self.connection = captain.Connection(nodes=["http://user:pass@localhost:80/"])
-
-    def test_one_or_more_containers_with_no_version(self):
-        containers_with_no_version_set = [c for a in self.connection.get_all_apps().values() for c in a if not c["version"]]
-        self.assertTrue(len(containers_with_no_version_set) > 0)
-
-    def test_one_or_more_containers_not_running(self):
-        not_running_containers = [c for a in self.connection.get_all_apps().values() for c in a if not c["running"]]
-        self.assertTrue(len(not_running_containers) > 0)
 
 
 class TestContainer(unittest.TestCase):
@@ -70,7 +32,7 @@ class TestContainer(unittest.TestCase):
 
     @patch('docker.Client', new=MockDockerClient)
     def get_container(self, container_details):
-        return captain.Container(
+        return Instance(
             docker_connection=self.MockDockerClient(),
             node="localhost",
             container_id=container_details["id"])
