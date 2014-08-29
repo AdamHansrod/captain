@@ -1,4 +1,5 @@
 import docker
+from itertools import groupby
 from urlparse import urlparse
 from captain.hmrc_model import Instance
 
@@ -40,4 +41,6 @@ class Connection(object):
 
     def get_container(self, node, container_id):
         docker_connection = self.node_connections[node]
-        return Instance(docker_connection, node, container_id)
+        inspection_details = docker_connection.inspect_container(container_id)
+
+        return Instance(container_id, inspection_details, node)
