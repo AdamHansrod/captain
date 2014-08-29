@@ -1,68 +1,44 @@
 import unittest
-import socket
-from mock import patch
-from captain.hmrc_connection import Connection
 from captain.hmrc_model import Instance, Application
-from util_mock import ClientMock, containers, __inspect_container_cmd_return, container_details
 
 
 class TestApplication(unittest.TestCase):
-    MockDockerClient = ClientMock()
 
-    @patch('docker.Client', new=MockDockerClient)
-    def setUp(self):
-        self.connection = Connection(nodes=["http://user:pass@localhost:80/"])
+    def test_creation(self):
+        # given
+        app_name = "paye"
+        app_instance_1 = Instance("abcdef0123456789", "paye", "1.2.0", "appserver-1", "192.168.17.6", 43127, True)
+        app_instance_2 = Instance("abcdef9876543210", "paye", "1.2.0", "appserver-2", "192.168.17.7", 43053, True)
 
-    def test_apps(self):
-        node = "localhost"
-        app_name = containers[0]["app"]
-        app_containers = []
-        for container in containers:
-            if container["app"] != app_name:
-                continue
-            app_container_id = container["id"]
-            app_containers.append(Instance(app_container_id, container_details[container["id"]], node))
-        app = Application(name=app_name, instances=app_containers)
-        self.assertEquals(app, self.connection.get_all_apps()[app_name])
-        self.assertTrue(len(app) > 0)
+        # when
+        application = Application(name=app_name, instances=[app_instance_1, app_instance_2])
+
+        # then
+        self.assertEquals(app_name, application.name)
+        self.assertEquals(app_instance_1, application[0])
+        self.assertEquals(app_instance_2, application[1])
 
 
-class TestContainer(unittest.TestCase):
-    MockDockerClient = ClientMock()
+class TestInstance(unittest.TestCase):
 
-    @patch('docker.Client', new=MockDockerClient)
-    def build_instance(self, container):
-        return Instance(
-            inspection_details=container_details[container["id"]],
-            node="localhost",
-            container_id=container["id"])
+    def test_creation(self):
+        # given
+        id = "abcdef0123456789"
+        app = "paye"
+        version = "1.2.0"
+        node = "appserver-1"
+        ip = "192.168.17.6"
+        port = 43127
+        running = True
 
-    def test_container_name_attribute(self):
-        for container in containers:
-            instance = self.build_instance(container)
-            self.assertEqual(container["app"], instance["app"])
+        # when
+        instance = Instance(id, app, version, node, ip, port, running)
 
-    def test_container_version_attribute(self):
-        for container in containers:
-            instance = self.build_instance(container)
-            self.assertEqual(container["version"], instance["version"])
-
-    def test_container_node_attribute(self):
-        for container in containers:
-            instance = self.build_instance(container)
-            self.assertEqual("localhost", instance["node"])
-
-    def test_container_ip_attribute(self):
-        for container in containers:
-            instance = self.build_instance(container)
-            self.assertEqual(socket.gethostbyname("localhost"), instance["ip"])
-
-    def test_container_port_attribute(self):
-        for container in containers:
-            instance = self.build_instance(container)
-            self.assertEqual(container["port"], instance["port"])
-
-    def test_container_running_attribute(self):
-        for container in containers:
-            instance = self.build_instance(container)
-            self.assertEqual(container["running"], instance["running"])
+        # then
+        self.assertEqual(id, instance["id"])
+        self.assertEqual(app, instance["app"])
+        self.assertEqual(version, instance["version"])
+        self.assertEqual(node, instance["node"])
+        self.assertEqual(ip, instance["ip"])
+        self.assertEqual(port, instance["port"])
+        self.assertEqual(running, instance["running"])

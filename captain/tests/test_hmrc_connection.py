@@ -1,8 +1,7 @@
 import unittest
 from mock import patch
 from captain.hmrc_connection import Connection
-from captain.hmrc_model import Instance
-from util_mock import ClientMock, containers, container_details
+from util_mock import ClientMock
 
 
 class TestConnection(unittest.TestCase):
@@ -15,24 +14,36 @@ class TestConnection(unittest.TestCase):
     def test_creates_docker_client(self):
         self.assertTrue(self.MockDockerClient.called)
 
-    def test_get_container(self):
-        node = "localhost"
-        container = containers[0]
-        container_id = container["id"]
-        container1 = self.connection.get_container(node, container_id)
-        container2 = Instance(container_id, container_details[container_id], node)
-        different_container_id = containers[1]["id"]
-        different_container = Instance(different_container_id, container_details[different_container_id], node)
-        self.assertEquals(container1, container2)
-        self.assertNotEquals(container1, different_container)
+    def test_returns_all_apps(self):
+        # when
+        all_apps = self.connection.get_all_apps()
 
+        # then
+        self.assertEqual(3, all_apps.__len__())
 
-class TestWeirdContainersPresent(unittest.TestCase):
-    MockDockerClient = ClientMock()
+        app_ers = all_apps["ers-checking-frontend-27"]
+        self.assertEqual(1, app_ers.__len__())
+        self.assertEqual("656ca7c307d178", app_ers[0]["id"])
+        self.assertEqual("ers-checking-frontend-27", app_ers[0]["app"])
+        self.assertEqual(None, app_ers[0]["version"])
+        self.assertEqual(9225, app_ers[0]["port"])
+        self.assertEqual(True, app_ers[0]["running"])
 
-    @patch('docker.Client', new=MockDockerClient)
-    def setUp(self):
-        self.connection = Connection(nodes=["http://user:pass@localhost:80/"])
+        app_paye = all_apps["paye"]
+        self.assertEqual(1, app_paye.__len__())
+        self.assertEqual("eba8bea2600029", app_paye[0]["id"])
+        self.assertEqual("paye", app_paye[0]["app"])
+        self.assertEqual("216", app_paye[0]["version"])
+        self.assertEqual(9317, app_paye[0]["port"])
+        self.assertEqual(True, app_paye[0]["running"])
+
+        app_attorney = all_apps["attorney"]
+        self.assertEqual(1, app_attorney.__len__())
+        self.assertEqual("1ca0e49fcd60fa", app_attorney[0]["id"])
+        self.assertEqual("attorney", app_attorney[0]["app"])
+        self.assertEqual("46", app_attorney[0]["version"])
+        self.assertEqual(9344, app_attorney[0]["port"])
+        self.assertEqual(False, app_attorney[0]["running"])
 
     def test_one_or_more_containers_with_no_version(self):
         containers_with_no_version_set = [c for a in self.connection.get_all_apps().values() for c in a if not c["version"]]
