@@ -28,7 +28,7 @@ class TestConnection(unittest.TestCase):
         self.assertNotEquals(container1, different_container)
 
 
-class TestWierdContainersPresent(unittest.TestCase):
+class TestWeirdContainersPresent(unittest.TestCase):
     MockDockerClient = ClientMock()
 
     @patch('docker.Client', new=MockDockerClient)
