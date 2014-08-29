@@ -2,7 +2,7 @@ import unittest
 from mock import patch
 from captain.hmrc_connection import Connection
 from captain.hmrc_model import Instance
-from util_mock import ClientMock, containers
+from util_mock import ClientMock, containers, container_details
 
 
 class TestConnection(unittest.TestCase):
@@ -12,18 +12,17 @@ class TestConnection(unittest.TestCase):
     def setUp(self):
         self.connection = Connection(nodes=["http://user:pass@localhost:80/"])
 
-    def test_returns_connection(self):
-        self.assertEquals(type(self.connection), Connection)
+    def test_creates_docker_client(self):
         self.assertTrue(self.MockDockerClient.called)
 
     def test_get_container(self):
         node = "localhost"
-        container_details = containers[0]
-        container_id = container_details["id"]
+        container = containers[0]
+        container_id = container["id"]
         container1 = self.connection.get_container(node, container_id)
-        container2 = Instance(self.MockDockerClient(), node, container_id)
+        container2 = Instance(container_id, container_details[container_id], node)
         different_container_id = containers[1]["id"]
-        different_container = Instance(self.MockDockerClient(), node, different_container_id)
+        different_container = Instance(different_container_id, container_details[different_container_id], node)
         self.assertEquals(container1, container2)
         self.assertNotEquals(container1, different_container)
 

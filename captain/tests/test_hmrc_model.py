@@ -3,7 +3,7 @@ import socket
 from mock import patch
 from captain.hmrc_connection import Connection
 from captain.hmrc_model import Instance, Application
-from util_mock import ClientMock, containers
+from util_mock import ClientMock, containers, __inspect_container_cmd_return, container_details
 
 
 class TestApplication(unittest.TestCase):
@@ -17,11 +17,11 @@ class TestApplication(unittest.TestCase):
         node = "localhost"
         app_name = containers[0]["app"]
         app_containers = []
-        for container_details in containers:
-            if container_details["app"] != app_name:
+        for container in containers:
+            if container["app"] != app_name:
                 continue
-            app_container_id = container_details["id"]
-            app_containers.append(Instance(self.MockDockerClient(), node, app_container_id))
+            app_container_id = container["id"]
+            app_containers.append(Instance(app_container_id, container_details[container["id"]], node))
         app = Application(name=app_name, instances=app_containers)
         self.assertEquals(app, self.connection.get_all_apps()[app_name])
         self.assertTrue(len(app) > 0)
@@ -31,38 +31,38 @@ class TestContainer(unittest.TestCase):
     MockDockerClient = ClientMock()
 
     @patch('docker.Client', new=MockDockerClient)
-    def get_container(self, container_details):
+    def build_instance(self, container):
         return Instance(
-            docker_connection=self.MockDockerClient(),
+            inspection_details=container_details[container["id"]],
             node="localhost",
-            container_id=container_details["id"])
+            container_id=container["id"])
 
     def test_container_name_attribute(self):
-        for container_details in containers:
-            container = self.get_container(container_details)
-            self.assertEqual(container["app"], container_details["app"])
+        for container in containers:
+            instance = self.build_instance(container)
+            self.assertEqual(container["app"], instance["app"])
 
     def test_container_version_attribute(self):
-        for container_details in containers:
-            container = self.get_container(container_details)
-            self.assertEqual(container["version"], container_details["version"])
+        for container in containers:
+            instance = self.build_instance(container)
+            self.assertEqual(container["version"], instance["version"])
 
     def test_container_node_attribute(self):
-        for container_details in containers:
-            container = self.get_container(container_details)
-            self.assertEqual(container["node"], "localhost")
+        for container in containers:
+            instance = self.build_instance(container)
+            self.assertEqual("localhost", instance["node"])
 
     def test_container_ip_attribute(self):
-        for container_details in containers:
-            container = self.get_container(container_details)
-            self.assertEqual(container["ip"], socket.gethostbyname("localhost"))
+        for container in containers:
+            instance = self.build_instance(container)
+            self.assertEqual(socket.gethostbyname("localhost"), instance["ip"])
 
     def test_container_port_attribute(self):
-        for container_details in containers:
-            container = self.get_container(container_details)
-            self.assertEqual(container["port"], container_details["port"])
+        for container in containers:
+            instance = self.build_instance(container)
+            self.assertEqual(container["port"], instance["port"])
 
     def test_container_running_attribute(self):
-        for container_details in containers:
-            container = self.get_container(container_details)
-            self.assertEqual(container["running"], container_details["running"])
+        for container in containers:
+            instance = self.build_instance(container)
+            self.assertEqual(container["running"], instance["running"])
