@@ -1,6 +1,5 @@
 import socket
 import docker
-from itertools import groupby
 from urlparse import urlparse
 from captain.hmrc_model import Instance
 
