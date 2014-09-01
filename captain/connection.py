@@ -16,12 +16,11 @@ class Connection(object):
 
     def __get_connection(self, address, api_version):
         if address.port:
-            docker_conn = docker.Client(base_url="{}://{}:{}".format(address.scheme, address.hostname, address.port),
-                                        version=api_version, timeout=20)
+            base_url = "{}://{}:{}".format(address.scheme, address.hostname, address.port)
         else:
-            docker_conn = docker.Client(base_url="{}://{}".format(address.scheme, address.hostname),
-                                        version=api_version, timeout=20)
-        return docker_conn
+            base_url = "{}://{}".format(address.scheme, address.hostname)
+
+        return docker.Client(base_url=base_url, version=api_version, timeout=20)
 
     def __get_all_containers(self):
         all_containers = []
