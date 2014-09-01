@@ -1,6 +1,6 @@
 import unittest
 from mock import patch
-from captain.hmrc_connection import Connection
+from captain.connection import Connection
 from util_mock import ClientMock
 
 

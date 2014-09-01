@@ -1,7 +1,7 @@
 import socket
 import docker
 from urlparse import urlparse
-from captain.hmrc_model import Instance
+from captain.model import Instance
 
 
 class Connection(object):
