@@ -23,6 +23,21 @@ class Connection(object):
                 all_apps[container["app"]] = [container]
         return all_apps
 
+    def stop_application(self, application_name):
+        applications = self.get_applications()
+        application = applications[application_name]
+
+        for application_instance in application:
+            docker_hostname = application_instance["node"]
+            docker_container_id = application_instance["id"]
+
+            self.node_connections[docker_hostname].stop(docker_container_id)
+
+            try:
+                self.node_connections[docker_hostname].remove_container(docker_container_id, force=True)
+            except:
+                pass  # we do not really care if removing container failed, as long as it has been stopped
+
     def __get_connection(self, address, api_version):
         if address.port:
             base_url = "{}://{}:{}".format(address.scheme, address.hostname, address.port)
@@ -35,7 +50,7 @@ class Connection(object):
         all_containers = []
         for node, node_conn in self.node_connections.items():
             node_containers = node_conn.containers(
-                quiet=False, all=True, trunc=False, latest=False,
+                quiet=False, all=False, trunc=False, latest=False,
                 since=None, before=None, limit=-1)
             for container in node_containers:
                 container_id = container["Id"]
@@ -58,6 +73,5 @@ class Connection(object):
                         app=app,
                         version=version,
                         node=node,
-                        ip=socket.gethostbyname(node),
-                        port=int(inspection_details["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
-                        running=inspection_details["State"]["Running"])
+                        address=node,
+                        port=int(inspection_details["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]))
