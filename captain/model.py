@@ -1,15 +1,14 @@
 class ApplicationInstance(dict):
-    def __init__(self, id, app, version, node, ip, port, running):
+    def __init__(self, id, app, version, node, address, port):
         self["id"] = id
         self["app"] = app
         self["version"] = version
         self["node"] = node
-        self["ip"] = ip
+        self["address"] = address
         self["port"] = port
-        self["running"] = running
 
     def __repr__(self):
-        return "<{} {} @{}:{} ({})>".format(self.app, self.version, self.node, self.port, self.id)
+        return "<{} {} @{}:{} ({}/{})>".format(self.app, self.version, self.address, self.port, self.node, self.id)
 
 
 class Application(list):
