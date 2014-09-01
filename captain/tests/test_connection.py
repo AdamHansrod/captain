@@ -15,7 +15,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(nodes=["http://user:pass@node-1:80/"], api_version="1.12")
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
         all_applications = connection.get_applications()
 
         # then
@@ -31,10 +31,16 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(9225, app_ers[0]["port"])
 
         app_paye = all_applications["paye"]
-        self.assertEqual(1, app_paye.__len__())
+        self.assertEqual(2, app_paye.__len__())
         self.assertEqual("eba8bea2600029", app_paye[0]["id"])
         self.assertEqual("node-1", app_paye[0]["node"])
         self.assertEqual("paye", app_paye[0]["app"])
         self.assertEqual("216", app_paye[0]["version"])
         self.assertEqual("node-1", app_paye[0]["address"])
         self.assertEqual(9317, app_paye[0]["port"])
+        self.assertEqual("80be2a9e62ba00", app_paye[1]["id"])
+        self.assertEqual("node-2", app_paye[1]["node"])
+        self.assertEqual("paye", app_paye[1]["app"])
+        self.assertEqual("216", app_paye[1]["version"])
+        self.assertEqual("node-2", app_paye[1]["address"])
+        self.assertEqual(9317, app_paye[1]["port"])
