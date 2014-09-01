@@ -27,15 +27,7 @@ class Connection(object):
         application = applications[application_name]
 
         for application_instance in application:
-            docker_hostname = application_instance["node"]
-            docker_container_id = application_instance["id"]
-
-            self.node_connections[docker_hostname].stop(docker_container_id)
-
-            try:
-                self.node_connections[docker_hostname].remove_container(docker_container_id, force=True)
-            except:
-                pass  # we do not care if removing the container failed
+            self.stop_application_instance(application_name, application_instance["id"])
 
     def stop_application_instance(self, application_name, application_instance_id):
         applications = self.get_applications()
