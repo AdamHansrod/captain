@@ -251,11 +251,3 @@ __inspect_container_cmd_return = {
         u'Volumes': {},
         u'VolumesRW': {}}
 }
-
-
-containers = [
-    {"id": "656ca7c307d178", "app": "ers-checking-frontend-27", "version": None, "port": 9225, "running": True},
-    {"id": "eba8bea2600029", "app": "paye", "version": "216", "port": 9317, "running": True},
-    {"id": "1ca0e49fcd60fa", "app": "attorney", "version": "46", "port": 9344, "running": False},
-]
-container_details = __inspect_container_cmd_return
