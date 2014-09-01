@@ -1,7 +1,7 @@
 import socket
 import docker
 from urlparse import urlparse
-from captain.model import Instance
+from captain.model import ApplicationInstance
 
 
 class Connection(object):
@@ -45,7 +45,7 @@ class Connection(object):
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(inspection_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
 
-        return Instance(id=container_id,
+        return ApplicationInstance(id=container_id,
                         app=app,
                         version=version,
                         node=node,

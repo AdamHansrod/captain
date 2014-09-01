@@ -9,7 +9,7 @@ class TestConnection(unittest.TestCase):
 
     @patch('docker.Client', new=MockDockerClient)
     def setUp(self):
-        self.connection = Connection(nodes=["http://user:pass@localhost:80/"])
+        self.connection = Connection(nodes=["http://user:pass@localhost:80/"], api_version="1.12")
 
     def test_creates_docker_client(self):
         self.assertTrue(self.MockDockerClient.called)
