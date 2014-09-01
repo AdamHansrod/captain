@@ -14,6 +14,15 @@ class Connection(object):
             docker_conn.auth = (address.username, address.password)
             self.node_connections[address.hostname] = docker_conn
 
+    def get_applications(self):
+        all_apps = {}
+        for container in self.__get_all_containers():
+            try:
+                all_apps[container["app"]].append(container)
+            except KeyError:
+                all_apps[container["app"]] = [container]
+        return all_apps
+
     def __get_connection(self, address, api_version):
         if address.port:
             base_url = "{}://{}:{}".format(address.scheme, address.hostname, address.port)
@@ -52,12 +61,3 @@ class Connection(object):
                         ip=socket.gethostbyname(node),
                         port=int(inspection_details["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
                         running=inspection_details["State"]["Running"])
-
-    def get_all_apps(self):
-        all_apps = {}
-        for container in self.__get_all_containers():
-            try:
-                all_apps[container["app"]].append(container)
-            except KeyError:
-                all_apps[container["app"]] = [container]
-        return all_apps

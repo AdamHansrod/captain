@@ -16,7 +16,7 @@ class TestConnection(unittest.TestCase):
 
     def test_returns_all_apps(self):
         # when
-        all_apps = self.connection.get_all_apps()
+        all_apps = self.connection.get_applications()
 
         # then
         self.assertEqual(3, all_apps.__len__())
@@ -46,9 +46,9 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(False, app_attorney[0]["running"])
 
     def test_one_or_more_containers_with_no_version(self):
-        containers_with_no_version_set = [c for a in self.connection.get_all_apps().values() for c in a if not c["version"]]
+        containers_with_no_version_set = [c for a in self.connection.get_applications().values() for c in a if not c["version"]]
         self.assertTrue(len(containers_with_no_version_set) > 0)
 
     def test_one_or_more_containers_not_running(self):
-        not_running_containers = [c for a in self.connection.get_all_apps().values() for c in a if not c["running"]]
+        not_running_containers = [c for a in self.connection.get_applications().values() for c in a if not c["running"]]
         self.assertTrue(len(not_running_containers) > 0)
