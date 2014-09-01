@@ -13,10 +13,11 @@ app.logger.addHandler(stream_handler)
 app.logger.setLevel(logging.INFO)
 
 DOCKER_NODES = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
+DOCKER_API_VERSION = os.getenv("DOCKER_API_VERSION")
 
 @app.before_request
 def before_request():
-    g.captain_conn = Connection(nodes=DOCKER_NODES)
+    g.captain_conn = Connection(nodes=DOCKER_NODES, api_version=DOCKER_API_VERSION)
 
 class RestApplications(restful.Resource):
     def get(self):
