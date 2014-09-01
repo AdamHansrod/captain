@@ -1,9 +1,6 @@
 import unittest
-import docker
-from mock import patch, MagicMock
+from mock import patch
 from captain.connection import Connection
-from captain.tests import util_mock
-# from util_mock import ClientMock
 from captain.tests.util_mock import ClientMock
 
 
@@ -12,7 +9,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_returns_all_applications(self, docker_client):
         # given
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
         connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
@@ -44,3 +41,35 @@ class TestConnection(unittest.TestCase):
         self.assertEqual("216", app_paye[1]["version"])
         self.assertEqual("node-2", app_paye[1]["address"])
         self.assertEqual(9317, app_paye[1]["port"])
+
+    @patch('docker.Client')
+    def test_stops_application_running_on_single_node(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application("ers-checking-frontend-27")
+
+        # then
+        mock_client_node1.stop.assert_called_with('656ca7c307d178')
+        mock_client_node1.remove_container.assert_called_with('656ca7c307d178', force=True)
+
+        self.assertFalse(mock_client_node2.stop.called)
+        self.assertFalse(mock_client_node2.remove_container.called)
+
+    @patch('docker.Client')
+    def test_stops_application_running_on_two_nodes(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application("paye")
+
+        # then
+        mock_client_node1.stop.assert_called_with('eba8bea2600029')
+        mock_client_node1.remove_container.assert_called_with('eba8bea2600029', force=True)
+
+        mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+        mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
