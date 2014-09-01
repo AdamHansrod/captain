@@ -94,3 +94,36 @@ class TestConnection(unittest.TestCase):
         # then
         mock_client_node1.stop.assert_called_with('eba8bea2600029')
         mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+
+    @patch('docker.Client')
+    def test_stops_application_instance(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application_instance("paye", "80be2a9e62ba00")
+
+        # then
+        self.assertFalse(mock_client_node1.stop.called)
+        self.assertFalse(mock_client_node1.remove_container.called)
+
+        mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+        mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
+
+    @patch('docker.Client')
+    def test_stops_application_instance_even_if_remove_container_fails(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        mock_client_node2.remove_container.side_effect = Exception()
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application_instance("paye", "80be2a9e62ba00")
+
+        # then
+        self.assertFalse(mock_client_node1.stop.called)
+        self.assertFalse(mock_client_node1.remove_container.called)
+
+        mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+        mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
