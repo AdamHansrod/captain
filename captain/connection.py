@@ -1,4 +1,3 @@
-import socket
 import docker
 from urlparse import urlparse
 from captain.model import ApplicationInstance
