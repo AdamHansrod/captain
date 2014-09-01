@@ -21,17 +21,17 @@ def before_request():
 
 class RestApplications(restful.Resource):
     def get(self):
-        return g.captain_conn.get_all_apps()
+        return g.captain_conn.get_applications()
 
 class RestApplication(restful.Resource):
-    def get(self, app_id):
+    def get(self, application_name):
         try:
-            return g.captain_conn.get_all_apps()[app_id]
+            return g.captain_conn.get_applications()[application_name]
         except KeyError:
             abort(404)
 
 api.add_resource(RestApplications, '/apps/')
-api.add_resource(RestApplication, '/apps/<string:app_id>')
+api.add_resource(RestApplication, '/apps/<string:application_name>')
 
 if __name__ == '__main__':
     app.run(debug=True, port=1234)
