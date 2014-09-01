@@ -18,29 +18,35 @@ class TestConnection(unittest.TestCase):
         # then
         self.assertEqual(2, all_applications.__len__())
 
-        app_ers = all_applications["ers-checking-frontend-27"]
-        self.assertEqual(1, app_ers.__len__())
-        self.assertEqual("656ca7c307d178", app_ers[0]["id"])
-        self.assertEqual("node-1", app_ers[0]["node"])
-        self.assertEqual("ers-checking-frontend-27", app_ers[0]["app"])
-        self.assertEqual(None, app_ers[0]["version"])
-        self.assertEqual("node-1", app_ers[0]["address"])
-        self.assertEqual(9225, app_ers[0]["port"])
+        application_ers = all_applications["ers-checking-frontend-27"]
+        self.assertEqual(1, application_ers.__len__())
 
-        app_paye = all_applications["paye"]
-        self.assertEqual(2, app_paye.__len__())
-        self.assertEqual("eba8bea2600029", app_paye[0]["id"])
-        self.assertEqual("node-1", app_paye[0]["node"])
-        self.assertEqual("paye", app_paye[0]["app"])
-        self.assertEqual("216", app_paye[0]["version"])
-        self.assertEqual("node-1", app_paye[0]["address"])
-        self.assertEqual(9317, app_paye[0]["port"])
-        self.assertEqual("80be2a9e62ba00", app_paye[1]["id"])
-        self.assertEqual("node-2", app_paye[1]["node"])
-        self.assertEqual("paye", app_paye[1]["app"])
-        self.assertEqual("216", app_paye[1]["version"])
-        self.assertEqual("node-2", app_paye[1]["address"])
-        self.assertEqual(9317, app_paye[1]["port"])
+        application_ers_instance1 = application_ers[0]
+        self.assertEqual("656ca7c307d178", application_ers_instance1["id"])
+        self.assertEqual("node-1", application_ers_instance1["node"])
+        self.assertEqual("ers-checking-frontend-27", application_ers_instance1["app"])
+        self.assertEqual(None, application_ers_instance1["version"])
+        self.assertEqual("node-1", application_ers_instance1["address"])
+        self.assertEqual(9225, application_ers_instance1["port"])
+
+        application_paye = all_applications["paye"]
+        self.assertEqual(2, application_paye.__len__())
+
+        application_paye_instance1 = application_paye[0]
+        self.assertEqual("eba8bea2600029", application_paye_instance1["id"])
+        self.assertEqual("node-1", application_paye_instance1["node"])
+        self.assertEqual("paye", application_paye_instance1["app"])
+        self.assertEqual("216", application_paye_instance1["version"])
+        self.assertEqual("node-1", application_paye_instance1["address"])
+        self.assertEqual(9317, application_paye_instance1["port"])
+
+        application_paye_instance2 = application_paye[1]
+        self.assertEqual("80be2a9e62ba00", application_paye_instance2["id"])
+        self.assertEqual("node-2", application_paye_instance2["node"])
+        self.assertEqual("paye", application_paye_instance2["app"])
+        self.assertEqual("216", application_paye_instance2["version"])
+        self.assertEqual("node-2", application_paye_instance2["address"])
+        self.assertEqual(9317, application_paye_instance2["port"])
 
     @patch('docker.Client')
     def test_stops_application_running_on_single_node(self, docker_client):
