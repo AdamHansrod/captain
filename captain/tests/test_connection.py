@@ -1,54 +1,129 @@
 import unittest
 from mock import patch
 from captain.connection import Connection
-from util_mock import ClientMock
+from captain.tests.util_mock import ClientMock
 
 
 class TestConnection(unittest.TestCase):
-    MockDockerClient = ClientMock()
 
-    @patch('docker.Client', new=MockDockerClient)
-    def setUp(self):
-        self.connection = Connection(nodes=["http://user:pass@localhost:80/"], api_version="1.12")
+    @patch('docker.Client')
+    def test_returns_all_applications(self, docker_client):
+        # given
+        ClientMock().mock_two_docker_nodes(docker_client)
 
-    def test_creates_docker_client(self):
-        self.assertTrue(self.MockDockerClient.called)
-
-    def test_returns_all_apps(self):
         # when
-        all_apps = self.connection.get_applications()
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        all_applications = connection.get_applications()
 
         # then
-        self.assertEqual(3, all_apps.__len__())
+        self.assertEqual(2, all_applications.__len__())
 
-        app_ers = all_apps["ers-checking-frontend-27"]
-        self.assertEqual(1, app_ers.__len__())
-        self.assertEqual("656ca7c307d178", app_ers[0]["id"])
-        self.assertEqual("ers-checking-frontend-27", app_ers[0]["app"])
-        self.assertEqual(None, app_ers[0]["version"])
-        self.assertEqual(9225, app_ers[0]["port"])
-        self.assertEqual(True, app_ers[0]["running"])
+        application_ers = all_applications["ers-checking-frontend-27"]
+        self.assertEqual(1, application_ers.__len__())
 
-        app_paye = all_apps["paye"]
-        self.assertEqual(1, app_paye.__len__())
-        self.assertEqual("eba8bea2600029", app_paye[0]["id"])
-        self.assertEqual("paye", app_paye[0]["app"])
-        self.assertEqual("216", app_paye[0]["version"])
-        self.assertEqual(9317, app_paye[0]["port"])
-        self.assertEqual(True, app_paye[0]["running"])
+        application_ers_instance1 = application_ers[0]
+        self.assertEqual("656ca7c307d178", application_ers_instance1["id"])
+        self.assertEqual("node-1", application_ers_instance1["node"])
+        self.assertEqual("ers-checking-frontend-27", application_ers_instance1["app"])
+        self.assertEqual(None, application_ers_instance1["version"])
+        self.assertEqual("node-1", application_ers_instance1["address"])
+        self.assertEqual(9225, application_ers_instance1["port"])
 
-        app_attorney = all_apps["attorney"]
-        self.assertEqual(1, app_attorney.__len__())
-        self.assertEqual("1ca0e49fcd60fa", app_attorney[0]["id"])
-        self.assertEqual("attorney", app_attorney[0]["app"])
-        self.assertEqual("46", app_attorney[0]["version"])
-        self.assertEqual(9344, app_attorney[0]["port"])
-        self.assertEqual(False, app_attorney[0]["running"])
+        application_paye = all_applications["paye"]
+        self.assertEqual(2, application_paye.__len__())
 
-    def test_one_or_more_containers_with_no_version(self):
-        containers_with_no_version_set = [c for a in self.connection.get_applications().values() for c in a if not c["version"]]
-        self.assertTrue(len(containers_with_no_version_set) > 0)
+        application_paye_instance1 = application_paye[0]
+        self.assertEqual("eba8bea2600029", application_paye_instance1["id"])
+        self.assertEqual("node-1", application_paye_instance1["node"])
+        self.assertEqual("paye", application_paye_instance1["app"])
+        self.assertEqual("216", application_paye_instance1["version"])
+        self.assertEqual("node-1", application_paye_instance1["address"])
+        self.assertEqual(9317, application_paye_instance1["port"])
 
-    def test_one_or_more_containers_not_running(self):
-        not_running_containers = [c for a in self.connection.get_applications().values() for c in a if not c["running"]]
-        self.assertTrue(len(not_running_containers) > 0)
+        application_paye_instance2 = application_paye[1]
+        self.assertEqual("80be2a9e62ba00", application_paye_instance2["id"])
+        self.assertEqual("node-2", application_paye_instance2["node"])
+        self.assertEqual("paye", application_paye_instance2["app"])
+        self.assertEqual("216", application_paye_instance2["version"])
+        self.assertEqual("node-2", application_paye_instance2["address"])
+        self.assertEqual(9317, application_paye_instance2["port"])
+
+    @patch('docker.Client')
+    def test_stops_application_running_on_single_node(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application("ers-checking-frontend-27")
+
+        # then
+        mock_client_node1.stop.assert_called_with('656ca7c307d178')
+        mock_client_node1.remove_container.assert_called_with('656ca7c307d178', force=True)
+
+        self.assertFalse(mock_client_node2.stop.called)
+        self.assertFalse(mock_client_node2.remove_container.called)
+
+    @patch('docker.Client')
+    def test_stops_application_running_on_two_nodes(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application("paye")
+
+        # then
+        mock_client_node1.stop.assert_called_with('eba8bea2600029')
+        mock_client_node1.remove_container.assert_called_with('eba8bea2600029', force=True)
+
+        mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+        mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
+
+    @patch('docker.Client')
+    def test_stops_application_even_if_remove_container_fails(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        mock_client_node1.remove_container.side_effect = Exception()
+        mock_client_node2.remove_container.side_effect = Exception()
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application("paye")
+
+        # then
+        mock_client_node1.stop.assert_called_with('eba8bea2600029')
+        mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+
+    @patch('docker.Client')
+    def test_stops_application_instance(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application_instance("paye", "80be2a9e62ba00")
+
+        # then
+        self.assertFalse(mock_client_node1.stop.called)
+        self.assertFalse(mock_client_node1.remove_container.called)
+
+        mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+        mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
+
+    @patch('docker.Client')
+    def test_stops_application_instance_even_if_remove_container_fails(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        mock_client_node2.remove_container.side_effect = Exception()
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection.stop_application_instance("paye", "80be2a9e62ba00")
+
+        # then
+        self.assertFalse(mock_client_node1.stop.called)
+        self.assertFalse(mock_client_node1.remove_container.called)
+
+        mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
+        mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
