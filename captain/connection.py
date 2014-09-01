@@ -35,7 +35,23 @@ class Connection(object):
             try:
                 self.node_connections[docker_hostname].remove_container(docker_container_id, force=True)
             except:
-                pass  # we do not really care if removing container failed, as long as it has been stopped
+                pass  # we do not care if removing the container failed
+
+    def stop_application_instance(self, application_name, application_instance_id):
+        applications = self.get_applications()
+        application = applications[application_name]
+
+        for application_instance in application:
+            if application_instance["id"] == application_instance_id:
+                docker_hostname = application_instance["node"]
+                docker_container_id = application_instance_id
+
+                self.node_connections[docker_hostname].stop(docker_container_id)
+
+                try:
+                    self.node_connections[docker_hostname].remove_container(docker_container_id, force=True)
+                except:
+                    pass  # we do not care if removing the container failed
 
     def __get_connection(self, address, api_version):
         if address.port:
