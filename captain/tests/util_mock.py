@@ -18,10 +18,10 @@ class ClientMock():
         self.client_node2.containers = MagicMock(return_value=self.__containers_cmd_return_node2)
 
     def mock_two_docker_nodes(self, docker_client):
-        docker_client.side_effect = self.side_effect
+        docker_client.side_effect = self.__side_effect
         return self.client_node1, self.client_node2
 
-    def side_effect(self, base_url, version, timeout):
+    def __side_effect(self, base_url, version, timeout):
         if "node-1" in base_url:
             return self.client_node1
 
@@ -35,7 +35,6 @@ class ClientMock():
             return data[container_id]
         except KeyError as e:
             raise docker.errors.APIError(e, "dummy", explanation="No such container: {}".format(container_id))
-
 
     __containers_cmd_return_node1 = [
         {u'Command': u'/runner/init start web',
@@ -70,7 +69,6 @@ class ClientMock():
                         u'PublicPort': 9317,
                         u'Type': u'tcp'}],
             u'Status': u'Up 19 minutes'}]
-
 
     __inspect_container_cmd_return_node1 = {
         "656ca7c307d178": {
