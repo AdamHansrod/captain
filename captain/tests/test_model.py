@@ -1,5 +1,5 @@
 import unittest
-from captain.model import Instance, Application
+from captain.model import ApplicationInstance, Application
 
 
 class TestApplication(unittest.TestCase):
@@ -7,8 +7,8 @@ class TestApplication(unittest.TestCase):
     def test_creation(self):
         # given
         app_name = "paye"
-        app_instance_1 = Instance("abcdef0123456789", "paye", "1.2.0", "appserver-1", "192.168.17.6", 43127, True)
-        app_instance_2 = Instance("abcdef9876543210", "paye", "1.2.0", "appserver-2", "192.168.17.7", 43053, True)
+        app_instance_1 = ApplicationInstance("abcdef0123456789", "paye", "1.2.0", "appserver-1", "192.168.17.6", 43127, True)
+        app_instance_2 = ApplicationInstance("abcdef9876543210", "paye", "1.2.0", "appserver-2", "192.168.17.7", 43053, True)
 
         # when
         application = Application(name=app_name, instances=[app_instance_1, app_instance_2])
@@ -19,7 +19,7 @@ class TestApplication(unittest.TestCase):
         self.assertEquals(app_instance_2, application[1])
 
 
-class TestInstance(unittest.TestCase):
+class TestApplicationInstance(unittest.TestCase):
 
     def test_creation(self):
         # given
@@ -32,7 +32,7 @@ class TestInstance(unittest.TestCase):
         running = True
 
         # when
-        instance = Instance(id, app, version, node, ip, port, running)
+        instance = ApplicationInstance(id, app, version, node, ip, port, running)
 
         # then
         self.assertEqual(id, instance["id"])

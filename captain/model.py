@@ -1,4 +1,4 @@
-class Instance(dict):
+class ApplicationInstance(dict):
     def __init__(self, id, app, version, node, ip, port, running):
         self["id"] = id
         self["app"] = app
