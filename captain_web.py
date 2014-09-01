@@ -1,7 +1,7 @@
 from flask import Flask, g, abort
 from flask.ext import restful
 import os
-from captain.hmrc_connection import Connection
+from captain.connection import Connection
 
 app = Flask(__name__)
 app.debug = True

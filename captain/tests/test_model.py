@@ -1,5 +1,5 @@
 import unittest
-from captain.hmrc_model import Instance, Application
+from captain.model import Instance, Application
 
 
 class TestApplication(unittest.TestCase):
