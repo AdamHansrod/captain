@@ -1,6 +1,6 @@
 import docker
 from urlparse import urlparse
-from captain.model import ApplicationInstance
+from captain.model import Instance
 
 
 class Connection(object):
@@ -13,30 +13,24 @@ class Connection(object):
             docker_conn.auth = (address.username, address.password)
             self.node_connections[address.hostname] = docker_conn
 
-    def get_applications(self):
-        all_apps = {}
-        for container in self.__get_all_containers():
-            try:
-                all_apps[container["app"]].append(container)
-            except KeyError:
-                all_apps[container["app"]] = [container]
-        return all_apps
+    def get_instances(self):
+        all_containers = []
+        for node, node_conn in self.node_connections.items():
+            node_containers = node_conn.containers(
+                quiet=False, all=False, trunc=False, latest=False,
+                since=None, before=None, limit=-1)
+            for container in node_containers:
+                container_id = container["Id"]
+                all_containers.append(self.__get_instance(node, container_id))
+        return all_containers
 
-    def stop_application(self, application_name):
-        applications = self.get_applications()
-        application = applications[application_name]
+    def stop_instance(self, instance_id):
+        instances = self.get_instances()
 
-        for application_instance in application:
-            self.stop_application_instance(application_name, application_instance["id"])
-
-    def stop_application_instance(self, application_name, application_instance_id):
-        applications = self.get_applications()
-        application = applications[application_name]
-
-        for application_instance in application:
-            if application_instance["id"] == application_instance_id:
-                docker_hostname = application_instance["node"]
-                docker_container_id = application_instance_id
+        for instance in instances:
+            if instance["id"] == instance_id:
+                docker_hostname = instance["node"]
+                docker_container_id = instance_id
 
                 self.node_connections[docker_hostname].stop(docker_container_id)
 
@@ -53,18 +47,7 @@ class Connection(object):
 
         return docker.Client(base_url=base_url, version=api_version, timeout=20)
 
-    def __get_all_containers(self):
-        all_containers = []
-        for node, node_conn in self.node_connections.items():
-            node_containers = node_conn.containers(
-                quiet=False, all=False, trunc=False, latest=False,
-                since=None, before=None, limit=-1)
-            for container in node_containers:
-                container_id = container["Id"]
-                all_containers.append(self.__get_container(node, container_id))
-        return all_containers
-
-    def __get_container(self, node, container_id):
+    def __get_instance(self, node, container_id):
         docker_connection = self.node_connections[node]
         inspection_details = docker_connection.inspect_container(container_id)
 
@@ -76,7 +59,7 @@ class Connection(object):
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(inspection_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
 
-        return ApplicationInstance(id=container_id,
+        return Instance(id=container_id,
                         app=app,
                         version=version,
                         node=node,
