@@ -67,5 +67,4 @@ class Connection(object):
                         app=app,
                         version=version,
                         node=node,
-                        address=node,
                         port=int(inspection_details["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]))

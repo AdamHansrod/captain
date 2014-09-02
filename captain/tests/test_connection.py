@@ -20,26 +20,23 @@ class TestConnection(unittest.TestCase):
 
         instance1 = instances[0]
         self.assertEqual("656ca7c307d178", instance1["id"])
-        self.assertEqual("node-1", instance1["node"])
         self.assertEqual("ers-checking-frontend-27", instance1["app"])
         self.assertEqual(None, instance1["version"])
-        self.assertEqual("node-1", instance1["address"])
+        self.assertEqual("node-1", instance1["node"])
         self.assertEqual(9225, instance1["port"])
 
         instance2 = instances[1]
         self.assertEqual("eba8bea2600029", instance2["id"])
-        self.assertEqual("node-1", instance2["node"])
         self.assertEqual("paye", instance2["app"])
         self.assertEqual("216", instance2["version"])
-        self.assertEqual("node-1", instance2["address"])
+        self.assertEqual("node-1", instance2["node"])
         self.assertEqual(9317, instance2["port"])
 
         instance3 = instances[2]
         self.assertEqual("80be2a9e62ba00", instance3["id"])
-        self.assertEqual("node-2", instance3["node"])
         self.assertEqual("paye", instance3["app"])
         self.assertEqual("216", instance3["version"])
-        self.assertEqual("node-2", instance3["address"])
+        self.assertEqual("node-2", instance3["node"])
         self.assertEqual(9317, instance3["port"])
 
     @patch('docker.Client')
