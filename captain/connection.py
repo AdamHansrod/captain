@@ -14,15 +14,15 @@ class Connection(object):
             self.node_connections[address.hostname] = docker_conn
 
     def get_instances(self):
-        all_containers = []
+        instances = []
         for node, node_conn in self.node_connections.items():
             node_containers = node_conn.containers(
                 quiet=False, all=False, trunc=False, latest=False,
                 since=None, before=None, limit=-1)
             for container in node_containers:
-                container_id = container["Id"]
-                all_containers.append(self.__get_instance(node, container_id))
-        return all_containers
+                instance_id = container["Id"]
+                instances.append(self.__get_instance(node, instance_id))
+        return instances
 
     def stop_instance(self, instance_id):
         instances = self.get_instances()
