@@ -1,10 +1,15 @@
 import unittest
 from mock import patch
+from captain.config import Config
 from captain.connection import Connection
 from captain.tests.util_mock import ClientMock
 
 
 class TestConnection(unittest.TestCase):
+
+    def setUp(self):
+        self.config = Config()
+        self.config.docker_nodes = ["http://node-1/", "http://node-2/"]
 
     @patch('docker.Client')
     def test_returns_all_instances(self, docker_client):
@@ -12,7 +17,7 @@ class TestConnection(unittest.TestCase):
         ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection = Connection(self.config)
         instances = connection.get_instances()
 
         # then
@@ -45,7 +50,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection = Connection(self.config)
         result = connection.stop_instance("80be2a9e62ba00")
 
         # then
@@ -64,7 +69,7 @@ class TestConnection(unittest.TestCase):
         mock_client_node2.remove_container.side_effect = Exception()
 
         # when
-        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection = Connection(self.config)
         result = connection.stop_instance("80be2a9e62ba00")
 
         # then
@@ -83,7 +88,7 @@ class TestConnection(unittest.TestCase):
         mock_client_node2.remove_container.side_effect = Exception()
 
         # when
-        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        connection = Connection(self.config)
         result = connection.stop_instance("nonexisting-instance")
 
         # then
