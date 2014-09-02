@@ -33,8 +33,12 @@ class RestInstance(restful.Resource):
             abort(404)
 
     def delete(self, instance_id):
-        g.captain_conn.stop_instance(instance_id)
-        return '', 204
+        stopped = g.captain_conn.stop_instance(instance_id)
+
+        if stopped:
+            return '', 204
+        else:
+            abort(404)
 
 api.add_resource(RestInstances, '/instances/')
 api.add_resource(RestInstance, '/instances/<string:instance_id>')
