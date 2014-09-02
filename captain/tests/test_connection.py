@@ -49,9 +49,11 @@ class TestConnection(unittest.TestCase):
 
         # when
         connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
-        connection.stop_instance("80be2a9e62ba00")
+        result = connection.stop_instance("80be2a9e62ba00")
 
         # then
+        self.assertTrue(result)
+
         self.assertFalse(mock_client_node1.stop.called)
         self.assertFalse(mock_client_node1.remove_container.called)
 
@@ -66,11 +68,32 @@ class TestConnection(unittest.TestCase):
 
         # when
         connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
-        connection.stop_instance("80be2a9e62ba00")
+        result = connection.stop_instance("80be2a9e62ba00")
 
         # then
+        self.assertTrue(result)
+
         self.assertFalse(mock_client_node1.stop.called)
         self.assertFalse(mock_client_node1.remove_container.called)
 
         mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
         mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
+
+    @patch('docker.Client')
+    def test_returns_false_when_trying_to_stop_nonexisting_instance(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        mock_client_node2.remove_container.side_effect = Exception()
+
+        # when
+        connection = Connection(nodes=["http://node-1/", "http://node-2/"], api_version="1.12")
+        result = connection.stop_instance("nonexisting-instance")
+
+        # then
+        self.assertFalse(result)
+
+        self.assertFalse(mock_client_node1.stop.called)
+        self.assertFalse(mock_client_node1.remove_container.called)
+
+        self.assertFalse(mock_client_node2.stop.called)
+        self.assertFalse(mock_client_node2.remove_container.called)

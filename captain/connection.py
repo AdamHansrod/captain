@@ -39,6 +39,10 @@ class Connection(object):
                 except:
                     pass  # we do not care if removing the container failed
 
+                return True
+
+        return False
+
     def __get_connection(self, address, api_version):
         if address.port:
             base_url = "{}://{}:{}".format(address.scheme, address.hostname, address.port)
