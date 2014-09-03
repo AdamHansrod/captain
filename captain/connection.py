@@ -32,27 +32,25 @@ class Connection(object):
         version = instance["version"]
         node = instance["node"]
 
-        node_connection = self.node_connections[node]
+        environment = instance.get("environment", {})
+        environment["PORT"] = "8080"
+        environment["SLUG_URL"] = self.config.slug_path.format(app_name=app, app_version=version)
 
-        unique_identifier = str(uuid.uuid4())
-        slug_url = self.slug_path.format(app_name=app, app_version=version)
-        config = "-Dgovuk-tax.Prod.services.ida.tokenapi.pathBase=https://ida-internal.tax.service.gov.uk -Dgovuk-tax.Prod.services.ida.tokenapi.username=X6WWYmqdewFIKngwMLD1mQ== -Drun.mode=Prod -Dgovuk-tax.Prod.services.ida.tokenapi.password=Ut3GPyy3hbTk6wpgvMB2WtTq3fuGuj2OVdiKKAidCxc= -Dsso.encryption.key=+Kn8pcuRGnFY5+9aaOgC4g== -Dgovuk-tax.Prod.externalLinks.servicesUrl=https://secure.hmce.gov.uk -Dgovuk-tax.Prod.platform.frontend.host=web-qa.tax.service.gov.uk -Dgovuk-tax.Prod.externalLinks.customsUrl=https://customs.hmrc.gov.uk -Dapplication.secret=6FsmK_gRYea=33xnBx6koN7BUi7TT`rZWUv`dPJFkL_01EE>hssT4;A^;EW>>u5@ -Dapplication.log=INFO -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080 -Dgovuk-tax.Prod.google-analytics.token=UA-43414424-4 -Dgovuk-tax.Prod.platform.frontend.protocol=https -Dcookie.encryption.key=isoidInFoiIHNCOSJRCC2D== -Dgovuk-tax.Prod.services.ida.tokenapi.tokenRequired=false"
-        java_opts = "-Xmx256m -Xms256m"
+        node_connection = self.node_connections[node]
 
         # create a container
         container = node_connection.create_container(image=self.config.slug_runner_image,
                                                      command=self.config.slug_runner_command,
                                                      ports=[8080],
-                                                     environment={"PORT": "8080",
-                                                                  "SLUG_URL": slug_url,
-                                                                  "HMRC_CONFIG": config,
-                                                                  "JAVA_OPTS": java_opts}, detach=True,
-                                                     name=app + "_" + version + "_" + unique_identifier)
+                                                     environment=environment,
+                                                     detach=True,
+                                                     name=app + "_" + version + "_" + str(uuid.uuid4()))
 
-        # start it
+        # start the container
         node_connection.start(container["Id"], port_bindings={8080: None})
 
-        # inspect the container (after starting it, important! before it it doesn't have port info in it)
+        # inspect the container
+        # it is important to inspect it *after* starting as before that it doesn't have port info in it)
         container_inspected = node_connection.inspect_container(container["Id"])
 
         # and return the container converted to an Instance
@@ -95,8 +93,6 @@ class Connection(object):
         environment = {}
         for env_item in container["Config"]["Env"]:
             env_item_key, env_item_value = env_item.split("=", 1)
-            print env_item_key
-            print env_item_value
             if env_item_key not in ['HOME', 'PATH', 'SLUG_URL', 'PORT']:
                 environment[env_item_key] = env_item_value
 

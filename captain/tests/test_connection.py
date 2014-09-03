@@ -10,6 +10,9 @@ class TestConnection(unittest.TestCase):
     def setUp(self):
         self.config = Config()
         self.config.docker_nodes = ["http://node-1/", "http://node-2/"]
+        self.config.slug_path = "http://hostname/{app_name}-{app_version}-slug.tgz"
+        self.config.slug_runner_command = "runner command"
+        self.config.slug_runner_image = "runner/image"
 
     @patch('docker.Client')
     def test_returns_all_instances(self, docker_client):
