@@ -11,9 +11,10 @@ class TestInstance(unittest.TestCase):
         version = "1.2.0"
         node = "appserver-1"
         port = 43127
+        environment = {'VAR1': 'value1', 'VAR2': 'value2'}
 
         # when
-        instance = Instance(id, app, version, node, port)
+        instance = Instance(id, app, version, node, port, environment)
 
         # then
         self.assertEqual(id, instance["id"])
@@ -21,3 +22,4 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(version, instance["version"])
         self.assertEqual(node, instance["node"])
         self.assertEqual(port, instance["port"])
+        self.assertEqual(environment, instance["environment"])
