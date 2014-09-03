@@ -16,7 +16,7 @@ DOCKER_NODES = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
 
 @app.before_request
 def before_request():
-    g.captain_conn = Connection(nodes=DOCKER_NODES, api_version="1.11")
+    g.captain_conn = Connection(nodes=DOCKER_NODES)
 
 
 class RestInstances(restful.Resource):
