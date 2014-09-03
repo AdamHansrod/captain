@@ -4,11 +4,11 @@ from captain.model import Instance
 
 
 class Connection(object):
-    def __init__(self, nodes, api_version, verify=False):
+    def __init__(self, nodes, verify=False):
         self.node_connections = {}
         for node in nodes:
             address = urlparse(node)
-            docker_conn = self.__get_connection(address, api_version)
+            docker_conn = self.__get_connection(address)
             docker_conn.verify = verify
             docker_conn.auth = (address.username, address.password)
             self.node_connections[address.hostname] = docker_conn
@@ -43,13 +43,13 @@ class Connection(object):
 
         return False
 
-    def __get_connection(self, address, api_version):
+    def __get_connection(self, address):
         if address.port:
             base_url = "{}://{}:{}".format(address.scheme, address.hostname, address.port)
         else:
             base_url = "{}://{}".format(address.scheme, address.hostname)
 
-        return docker.Client(base_url=base_url, version=api_version, timeout=20)
+        return docker.Client(base_url=base_url, version="1.12", timeout=20)
 
     def __get_instance(self, node, container_id):
         docker_connection = self.node_connections[node]
