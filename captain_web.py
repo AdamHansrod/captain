@@ -1,6 +1,7 @@
-from flask import Flask, g, abort
+from flask import Flask, g, abort, request, redirect, url_for
 from flask.ext import restful
 import os
+from captain.config import Config
 from captain.connection import Connection
 
 app = Flask(__name__)
@@ -14,14 +15,24 @@ app.logger.setLevel(logging.INFO)
 
 DOCKER_NODES = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
 
+
 @app.before_request
 def before_request():
-    g.captain_conn = Connection(nodes=DOCKER_NODES)
+    g.captain_conn = Connection(Config())
 
 
 class RestInstances(restful.Resource):
     def get(self):
         return g.captain_conn.get_instances()
+
+    def post(self):
+        if not request.json:
+            abort(400)
+
+        instance_request = request.json
+        instance_response = g.captain_conn.start_instance(instance_request)
+
+        return redirect('/instances/' + instance_response["id"], code=201)
 
 
 class RestInstance(restful.Resource):

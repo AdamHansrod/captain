@@ -6,16 +6,18 @@ class ClientMock():
 
     def __init__(self):
         self.client_node1 = MagicMock()
+        self.client_node1.containers = MagicMock(return_value=self.__containers_cmd_return_node1)
         self.client_node1.inspect_container = MagicMock(side_effect=lambda container_id:
                                                         self.__get_container(self.__inspect_container_cmd_return_node1,
                                                                              container_id))
-        self.client_node1.containers = MagicMock(return_value=self.__containers_cmd_return_node1)
+        self.client_node1.create_container = MagicMock(return_value={'Id': 'eba8bea2600029'})
+        self.client_node1.start = MagicMock()
 
         self.client_node2 = MagicMock()
+        self.client_node2.containers = MagicMock(return_value=self.__containers_cmd_return_node2)
         self.client_node2.inspect_container = MagicMock(side_effect=lambda container_id:
                                                         self.__get_container(self.__inspect_container_cmd_return_node2,
                                                                              container_id))
-        self.client_node2.containers = MagicMock(return_value=self.__containers_cmd_return_node2)
 
     def mock_two_docker_nodes(self, docker_client):
         docker_client.side_effect = self.__side_effect
@@ -63,7 +65,7 @@ class ClientMock():
             u'Created': 1408687834,
             u'Id': u'80be2a9e62ba00',
             u'Image': u'hmrc/slugrunner:latest',
-            u'Names': [u'/paye_216'],
+            u'Names': [u'/paye_216_8020e407-e40a-478e-9f31-a43bb50d8410'],
             u'Ports': [{u'IP': u'0.0.0.0',
                         u'PrivatePort': 8080,
                         u'PublicPort': 9317,
@@ -262,7 +264,7 @@ class ClientMock():
             u'Id': u'80be2a9e62ba00',
             u'Image': u'c0cd53268e0c7c42bac84b6bf4f51561720c33f5239aa809f1135cc69cc73a2a',
             u'MountLabel': u'',
-            u'Name': u'/paye_216',
+            u'Name': u'/paye_216_8020e407-e40a-478e-9f31-a43bb50d8410',
             u'NetworkSettings': {u'Bridge': u'docker0',
                                  u'Gateway': u'172.17.42.1',
                                  u'IPAddress': u'172.17.3.221',

@@ -1,12 +1,15 @@
+import uuid
 import docker
 from urlparse import urlparse
 from captain.model import Instance
 
 
 class Connection(object):
-    def __init__(self, nodes, verify=False):
+    def __init__(self, config, verify=False):
+        self.config = config
+
         self.node_connections = {}
-        for node in nodes:
+        for node in config.docker_nodes:
             address = urlparse(node)
             docker_conn = self.__get_connection(address)
             docker_conn.verify = verify
@@ -20,9 +23,38 @@ class Connection(object):
                 quiet=False, all=False, trunc=False, latest=False,
                 since=None, before=None, limit=-1)
             for container in node_containers:
-                instance_id = container["Id"]
-                instances.append(self.__get_instance(node, instance_id))
+                node_container = node_conn.inspect_container(container["Id"])
+                instances.append(self.__get_instance(node, node_container))
         return instances
+
+    def start_instance(self, instance):
+        app = instance["app"]
+        version = instance["version"]
+        node = instance["node"]
+
+        environment = instance.get("environment", {})
+        environment["PORT"] = "8080"
+        environment["SLUG_URL"] = self.config.slug_path.format(app_name=app, app_version=version)
+
+        node_connection = self.node_connections[node]
+
+        # create a container
+        container = node_connection.create_container(image=self.config.slug_runner_image,
+                                                     command=self.config.slug_runner_command,
+                                                     ports=[8080],
+                                                     environment=environment,
+                                                     detach=True,
+                                                     name=app + "_" + version + "_" + str(uuid.uuid4()))
+
+        # start the container
+        node_connection.start(container["Id"], port_bindings={8080: None})
+
+        # inspect the container
+        # it is important to inspect it *after* starting as before that it doesn't have port info in it)
+        container_inspected = node_connection.inspect_container(container["Id"])
+
+        # and return the container converted to an Instance
+        return self.__get_instance(node, container_inspected)
 
     def stop_instance(self, instance_id):
         instances = self.get_instances()
@@ -51,20 +83,25 @@ class Connection(object):
 
         return docker.Client(base_url=base_url, version="1.12", timeout=20)
 
-    def __get_instance(self, node, container_id):
-        docker_connection = self.node_connections[node]
-        inspection_details = docker_connection.inspect_container(container_id)
-
+    def __get_instance(self, node, container):
         try:
-            app, version = inspection_details["Name"][1:].split("_", 1)
+            app, version = container["Name"][1:].split("_", 1)
+            version = version.split("_")[0]
         except ValueError:
-            app, version = inspection_details["Name"][1:], None
+            app, version = container["Name"][1:], None
+
+        environment = {}
+        for env_item in container["Config"]["Env"]:
+            env_item_key, env_item_value = env_item.split("=", 1)
+            if env_item_key not in ['HOME', 'PATH', 'SLUG_URL', 'PORT']:
+                environment[env_item_key] = env_item_value
 
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(inspection_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
 
-        return Instance(id=container_id,
+        return Instance(id=container["Id"],
                         app=app,
                         version=version,
                         node=node,
-                        port=int(inspection_details["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]))
+                        port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
+                        environment=environment)
