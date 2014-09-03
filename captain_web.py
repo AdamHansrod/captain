@@ -15,6 +15,7 @@ app.logger.setLevel(logging.INFO)
 
 DOCKER_NODES = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
 
+
 @app.before_request
 def before_request():
     g.captain_conn = Connection(Config())
@@ -32,6 +33,7 @@ class RestInstances(restful.Resource):
         instance_response = g.captain_conn.start_instance(instance_request)
 
         return redirect('/instances/' + instance_response["id"], code=201)
+
 
 class RestInstance(restful.Resource):
     def get(self, instance_id):
