@@ -92,6 +92,14 @@ class Connection(object):
         except ValueError:
             app, version = container["Name"][1:], None
 
+        environment = {}
+        for env_item in container["Config"]["Env"]:
+            env_item_key, env_item_value = env_item.split("=", 1)
+            print env_item_key
+            print env_item_value
+            if env_item_key not in ['HOME', 'PATH', 'SLUG_URL', 'PORT']:
+                environment[env_item_key] = env_item_value
+
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(inspection_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
 
@@ -99,4 +107,5 @@ class Connection(object):
                         app=app,
                         version=version,
                         node=node,
-                        port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]))
+                        port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
+                        environment=environment)
