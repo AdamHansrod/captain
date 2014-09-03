@@ -6,16 +6,18 @@ class ClientMock():
 
     def __init__(self):
         self.client_node1 = MagicMock()
+        self.client_node1.containers = MagicMock(return_value=self.__containers_cmd_return_node1)
         self.client_node1.inspect_container = MagicMock(side_effect=lambda container_id:
                                                         self.__get_container(self.__inspect_container_cmd_return_node1,
                                                                              container_id))
-        self.client_node1.containers = MagicMock(return_value=self.__containers_cmd_return_node1)
+        self.client_node1.create_container = MagicMock(return_value={'Id': 'eba8bea2600029'})
+        self.client_node1.start = MagicMock()
 
         self.client_node2 = MagicMock()
+        self.client_node2.containers = MagicMock(return_value=self.__containers_cmd_return_node2)
         self.client_node2.inspect_container = MagicMock(side_effect=lambda container_id:
                                                         self.__get_container(self.__inspect_container_cmd_return_node2,
                                                                              container_id))
-        self.client_node2.containers = MagicMock(return_value=self.__containers_cmd_return_node2)
 
     def mock_two_docker_nodes(self, docker_client):
         docker_client.side_effect = self.__side_effect
