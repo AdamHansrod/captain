@@ -1,6 +1,6 @@
 import unittest
 import uuid
-from mock import patch
+from mock import patch, MagicMock
 from captain.config import Config
 from captain.connection import Connection
 from captain.model import Instance
@@ -10,7 +10,7 @@ from captain.tests.util_mock import ClientMock
 class TestConnection(unittest.TestCase):
 
     def setUp(self):
-        self.config = Config()
+        self.config = MagicMock()
         self.config.docker_nodes = ["http://node-1/", "http://node-2/"]
         self.config.slug_path = "http://host/{app_name}-{app_version}-slug.tgz"
         self.config.slug_runner_command = "runner command"
