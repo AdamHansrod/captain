@@ -1,7 +1,5 @@
 import unittest
-import uuid
 from mock import patch, MagicMock
-from captain.config import Config
 from captain.connection import Connection
 from captain.model import Instance
 from captain.tests.util_mock import ClientMock
