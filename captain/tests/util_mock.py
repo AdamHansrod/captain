@@ -12,12 +12,14 @@ class ClientMock():
                                                                              container_id))
         self.client_node1.create_container = MagicMock(return_value={'Id': 'eba8bea2600029'})
         self.client_node1.start = MagicMock()
+        self.client_node1.delete = MagicMock()
 
         self.client_node2 = MagicMock()
         self.client_node2.containers = MagicMock(return_value=self.__containers_cmd_return_node2)
         self.client_node2.inspect_container = MagicMock(side_effect=lambda container_id:
                                                         self.__get_container(self.__inspect_container_cmd_return_node2,
                                                                              container_id))
+        self.client_node2.delete = MagicMock()
 
     def mock_two_docker_nodes(self, docker_client):
         docker_client.side_effect = self.__side_effect
@@ -58,7 +60,14 @@ class ClientMock():
                         u'PrivatePort': 8080,
                         u'PublicPort': 9317,
                         u'Type': u'tcp'}],
-            u'Status': u'Up 56 minutes'}]
+            u'Status': u'Up 56 minutes'},
+        {u'Command': u'/runner/init start web',
+            u'Created': 1406886169,
+            u'Id': u'381587e2978216',
+            u'Image': u'hmrc/slugrunner:latest',
+            u'Names': [u'/ers_5'],
+            u'Ports': [],
+            u'Status': u'Exited (127) 4 weeks ago'}]
 
     __containers_cmd_return_node2 = [
         {u'Command': u'/runner/init start web',
@@ -70,7 +79,14 @@ class ClientMock():
                         u'PrivatePort': 8080,
                         u'PublicPort': 9317,
                         u'Type': u'tcp'}],
-            u'Status': u'Up 19 minutes'}]
+            u'Status': u'Up 19 minutes'},
+        {u'Command': u'/runner/init start web',
+            u'Created': 1409767240,
+            u'Id': u'389821jsv78216',
+            u'Image': u'hmrc/slugrunner:latest',
+            u'Names': [u'/myservice_10'],
+            u'Ports': [],
+            u'Status': u'Exited (127) 21 hours ago'}]
 
     __inspect_container_cmd_return_node1 = {
         "656ca7c307d178": {

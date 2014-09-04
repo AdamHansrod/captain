@@ -4,6 +4,7 @@ import os
 class Config(object):
     def __init__(self):
         self.docker_nodes = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
+        self.docker_gc_grace_period = int(os.getenv("DOCKER_GC_GRACE_PERIOD", "86400"))
 
         self.slug_path = os.getenv("SLUG_PATH")
         if self.slug_path is None:
