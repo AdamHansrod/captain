@@ -2,6 +2,7 @@ import uuid
 import docker
 from urlparse import urlparse
 from captain.model import Instance
+import time
 
 
 class Connection(object):
@@ -20,11 +21,16 @@ class Connection(object):
         instances = []
         for node, node_conn in self.node_connections.items():
             node_containers = node_conn.containers(
-                quiet=False, all=False, trunc=False, latest=False,
+                quiet=False, all=True, trunc=False, latest=False,
                 since=None, before=None, limit=-1)
             for container in node_containers:
-                node_container = node_conn.inspect_container(container["Id"])
-                instances.append(self.__get_instance(node, node_container))
+                if container["Status"].startswith("Exited"):
+                    now = time.mktime(time.localtime())
+                    if now - container["Created"] > self.config.docker_gc_grace_period:
+                        node_conn.delete(container["Id"])
+                else:
+                    node_container = node_conn.inspect_container(container["Id"])
+                    instances.append(self.__get_instance(node, node_container))
         return instances
 
     def start_instance(self, instance):
