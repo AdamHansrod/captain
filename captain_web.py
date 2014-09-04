@@ -13,8 +13,6 @@ stream_handler = logging.StreamHandler()
 app.logger.addHandler(stream_handler)
 app.logger.setLevel(logging.INFO)
 
-DOCKER_NODES = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
-
 
 @app.before_request
 def before_request():
