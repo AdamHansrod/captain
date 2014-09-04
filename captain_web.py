@@ -1,6 +1,5 @@
-from flask import Flask, g, abort, request, redirect, url_for
+from flask import Flask, g, abort, request, redirect
 from flask.ext import restful
-import os
 from captain.config import Config
 from captain.connection import Connection
 
@@ -12,8 +11,6 @@ import logging
 stream_handler = logging.StreamHandler()
 app.logger.addHandler(stream_handler)
 app.logger.setLevel(logging.INFO)
-
-DOCKER_NODES = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
 
 
 @app.before_request

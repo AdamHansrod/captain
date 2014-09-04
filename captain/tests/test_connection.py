@@ -1,7 +1,5 @@
 import unittest
-import uuid
 from mock import patch, MagicMock
-from captain.config import Config
 from captain.connection import Connection
 from captain.model import Instance
 from captain.tests.util_mock import ClientMock
@@ -15,11 +13,15 @@ class TestConnection(unittest.TestCase):
         self.config.slug_path = "http://host/{app_name}-{app_version}-slug.tgz"
         self.config.slug_runner_command = "runner command"
         self.config.slug_runner_image = "runner/image"
+        self.config.docker_gc_grace_period = 86400
 
+    @patch('captain.connection.time')
     @patch('docker.Client')
-    def test_returns_all_instances(self, docker_client):
+    def test_returns_all_instances(self, docker_client, time):
         # given
-        ClientMock().mock_two_docker_nodes(docker_client)
+        (docker_conn1, docker_conn2) = ClientMock().mock_two_docker_nodes(docker_client)
+        time.mktime = MagicMock(return_value=1409842966.0)
+        time.localtime = MagicMock()
 
         # when
         connection = Connection(self.config)
@@ -57,6 +59,10 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(2, instance3["environment"].__len__())
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", instance3["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance3["environment"]["JAVA_OPTS"])
+        # Two containers stopped, one of them for longer than docker_gc_grace_period
+        docker_conn1.delete.assert_called_with("381587e2978216")
+        self.assertEqual(docker_conn1.delete.call_count, 1)
+        self.assertEqual(docker_conn2.delete.call_count, 0)
 
     @patch('docker.Client')
     @patch('uuid.uuid4')
