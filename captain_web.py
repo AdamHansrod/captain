@@ -1,6 +1,5 @@
-from flask import Flask, g, abort, request, redirect, url_for
+from flask import Flask, g, abort, request, redirect
 from flask.ext import restful
-import os
 from captain.config import Config
 from captain.connection import Connection
 
