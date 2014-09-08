@@ -11,6 +11,7 @@ class TestConfig(unittest.TestCase):
     SLUG_PATH = "http://some/slug/path"
     SLUG_RUNNER_COMMAND = "some command"
     SLUG_RUNNER_IMAGE = "runner/image"
+    DOCKER_GC_GRACE_PERIOD = "100"
 
     @mock.patch("os.getenv")
     def test_gets_config_from_environment_properties(self, mock_getenv):
@@ -19,7 +20,8 @@ class TestConfig(unittest.TestCase):
             "DOCKER_NODES": "{},{}".format(self.DOCKER_NODE_1, self.DOCKER_NODE_2),
             "SLUG_PATH": self.SLUG_PATH,
             "SLUG_RUNNER_COMMAND": self.SLUG_RUNNER_COMMAND,
-            "SLUG_RUNNER_IMAGE": self.SLUG_RUNNER_IMAGE
+            "SLUG_RUNNER_IMAGE": self.SLUG_RUNNER_IMAGE,
+            "DOCKER_GC_GRACE_PERIOD": self.DOCKER_GC_GRACE_PERIOD
         }
         self.mock_environment(mock_getenv, environment)
 
@@ -31,6 +33,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.slug_path, self.SLUG_PATH)
         self.assertEqual(config.slug_runner_command, self.SLUG_RUNNER_COMMAND)
         self.assertEqual(config.slug_runner_image, self.SLUG_RUNNER_IMAGE)
+        self.assertEqual(config.docker_gc_grace_period, int(self.DOCKER_GC_GRACE_PERIOD))
 
     @mock.patch("os.getenv")
     def test_defaults_to_localhost_when_no_docker_nodes_specified(self, mock_getenv):
@@ -50,6 +53,25 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.slug_path, self.SLUG_PATH)
         self.assertEqual(config.slug_runner_command, self.SLUG_RUNNER_COMMAND)
         self.assertEqual(config.slug_runner_image, self.SLUG_RUNNER_IMAGE)
+
+    @mock.patch("os.getenv")
+    def test_defaults_to_86400_when_no_gc_period_specified(self, mock_getenv):
+        # given
+        environment = {
+            "SLUG_PATH": self.SLUG_PATH,
+            "SLUG_RUNNER_COMMAND": self.SLUG_RUNNER_COMMAND,
+            "SLUG_RUNNER_IMAGE": self.SLUG_RUNNER_IMAGE
+        }
+        self.mock_environment(mock_getenv, environment)
+
+        # when
+        config = Config()
+
+        # then
+        self.assertEqual(config.slug_path, self.SLUG_PATH)
+        self.assertEqual(config.slug_runner_command, self.SLUG_RUNNER_COMMAND)
+        self.assertEqual(config.slug_runner_image, self.SLUG_RUNNER_IMAGE)
+        self.assertEqual(config.docker_gc_grace_period , 86400)
 
     @mock.patch("os.getenv")
     @raises(Exception)
