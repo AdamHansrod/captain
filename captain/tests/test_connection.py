@@ -60,9 +60,9 @@ class TestConnection(unittest.TestCase):
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", instance3["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance3["environment"]["JAVA_OPTS"])
         # Two containers stopped, one of them for longer than docker_gc_grace_period
-        docker_conn1.delete.assert_called_with("381587e2978216")
-        self.assertEqual(docker_conn1.delete.call_count, 1)
-        self.assertEqual(docker_conn2.delete.call_count, 0)
+        docker_conn1.remove_container.assert_called_with("381587e2978216")
+        self.assertEqual(docker_conn1.remove_container.call_count, 1)
+        self.assertEqual(docker_conn2.remove_container.call_count, 0)
         # jh23899fg00029 doesn't have captain ports defined and should be ignored.
         self.assertFalse([ i for i in instances if i["id"] == "jh23899fg00029" ])
 
@@ -122,7 +122,7 @@ class TestConnection(unittest.TestCase):
         self.assertTrue(result)
 
         self.assertFalse(mock_client_node1.stop.called)
-        self.assertFalse(mock_client_node1.remove_container.called)
+        mock_client_node1.remove_container.assert_not_called_with("80be2a9e62ba00")
 
         mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
         mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
@@ -131,7 +131,6 @@ class TestConnection(unittest.TestCase):
     def test_stops_instance_even_if_remove_container_fails(self, docker_client):
         # given
         (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
-        mock_client_node2.remove_container.side_effect = Exception()
 
         # when
         connection = Connection(self.config)
@@ -141,7 +140,7 @@ class TestConnection(unittest.TestCase):
         self.assertTrue(result)
 
         self.assertFalse(mock_client_node1.stop.called)
-        self.assertFalse(mock_client_node1.remove_container.called)
+        mock_client_node1.remove_container.assert_not_called_with('80be2a9e62ba00')
 
         mock_client_node2.stop.assert_called_with('80be2a9e62ba00')
         mock_client_node2.remove_container.assert_called_with('80be2a9e62ba00', force=True)
@@ -150,7 +149,6 @@ class TestConnection(unittest.TestCase):
     def test_returns_false_when_trying_to_stop_nonexisting_instance(self, docker_client):
         # given
         (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
-        mock_client_node2.remove_container.side_effect = Exception()
 
         # when
         connection = Connection(self.config)
@@ -160,7 +158,7 @@ class TestConnection(unittest.TestCase):
         self.assertFalse(result)
 
         self.assertFalse(mock_client_node1.stop.called)
-        self.assertFalse(mock_client_node1.remove_container.called)
+        mock_client_node1.remove_container.assert_not_called_with('nonexisting-instance')
 
         self.assertFalse(mock_client_node2.stop.called)
-        self.assertFalse(mock_client_node2.remove_container.called)
+        mock_client_node2.remove_container.assert_not_called_with('nonexisting-instance')
