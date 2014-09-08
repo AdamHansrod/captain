@@ -17,7 +17,7 @@ class TestConnection(unittest.TestCase):
 
     @patch('captain.connection.time')
     @patch('docker.Client')
-    def test_returns_all_instances(self, docker_client, time):
+    def test_returns_all_instances_with_ports(self, docker_client, time):
         # given
         (docker_conn1, docker_conn2) = ClientMock().mock_two_docker_nodes(docker_client)
         time.mktime = MagicMock(return_value=1409842966.0)
@@ -63,6 +63,8 @@ class TestConnection(unittest.TestCase):
         docker_conn1.delete.assert_called_with("381587e2978216")
         self.assertEqual(docker_conn1.delete.call_count, 1)
         self.assertEqual(docker_conn2.delete.call_count, 0)
+        # jh23899fg00029 doesn't have captain ports defined and should be ignored.
+        self.assertFalse([ i for i in instances if i["id"] == "jh23899fg00029" ])
 
     @patch('docker.Client')
     @patch('uuid.uuid4')
