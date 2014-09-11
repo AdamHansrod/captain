@@ -29,7 +29,7 @@ class RestInstances(restful.Resource):
         instance_request = request.json
         instance_response = g.captain_conn.start_instance(instance_request)
 
-        return redirect('/instances/' + instance_response["id"], code=301)
+        return instance_response, 201
 
 
 class RestInstance(restful.Resource):
