@@ -6,6 +6,11 @@ class Config(object):
         self.docker_nodes = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
         self.docker_gc_grace_period = int(os.getenv("DOCKER_GC_GRACE_PERIOD", "86400"))
 
+        ## Assumed 16GB RAM, 128MB per container with 2-3GB reserved for OS
+        self.slots_per_node = int(os.getenv("SLOTS_PER_NODE", "110"))
+        self.slot_memory_mb = int(os.getenv("SLOT_MEMORY_MB", "128"))
+        self.default_slots_per_instance = int(os.getenv("DEFAULT_SLOTS_PER_INSTANCE", "2"))
+
         self.slug_path = os.getenv("SLUG_PATH")
         if self.slug_path is None:
             raise Exception("SLUG_PATH should be specified")
