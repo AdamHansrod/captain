@@ -41,7 +41,7 @@ class RestInstance(restful.Resource):
     def get(self, instance_id):
         try:
             return filter(lambda instance: instance["id"] == instance_id, g.captain_conn.get_instances())[0]
-        except KeyError:
+        except IndexError:
             restful.abort(404)
 
     def delete(self, instance_id):
