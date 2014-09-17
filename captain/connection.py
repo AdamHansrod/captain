@@ -1,7 +1,7 @@
 import uuid
 import docker
 from urlparse import urlparse
-from captain.model import Instance
+from captain import exceptions
 import time
 
 
@@ -17,9 +17,11 @@ class Connection(object):
             docker_conn.auth = (address.username, address.password)
             self.node_connections[address.hostname] = docker_conn
 
-    def get_instances(self):
+    def get_instances(self, node_filter=None):
         instances = []
         for node, node_conn in self.node_connections.items():
+            if node_filter and node != node_filter:
+                continue
             node_containers = node_conn.containers(
                 quiet=False, all=True, trunc=False, latest=False,
                 since=None, before=None, limit=-1)
@@ -33,14 +35,27 @@ class Connection(object):
                     instances.append(self.__get_instance(node, node_container))
         return instances
 
-    def start_instance(self, instance):
-        app = instance["app"]
-        version = instance["version"]
-        node = instance["node"]
+    def get_node(self, name):
+        if name not in self.node_connections:
+            raise exceptions.NoSuchNodeException()
+        countainer_count = reduce(lambda x, y: x + y["slots"], self.get_instances(node_filter=name), 0)
+        return {"id": name,
+                "slots": {
+                    "total": self.config.slots_per_node,
+                    "used": countainer_count,
+                    "free": self.config.slots_per_node - countainer_count}}
 
-        environment = instance.get("environment", {})
+    def get_nodes(self):
+        return [self.get_node(node) for node in self.node_connections.keys()]
+
+    def start_instance(self, app, version, node, allocated_port=None, environment={}, slots=None):
         environment["PORT"] = "8080"
         environment["SLUG_URL"] = self.config.slug_path.format(app_name=app, app_version=version)
+
+        if not slots:
+            slots = self.config.default_slots_per_instance
+        if len(self.get_instances(node_filter=node)) + slots > self.config.slots_per_node:
+            raise exceptions.NodeOutOfCapacityException()
 
         node_connection = self.node_connections[node]
 
@@ -50,7 +65,9 @@ class Connection(object):
                                                      ports=[8080],
                                                      environment=environment,
                                                      detach=True,
-                                                     name=app + "_" + version + "_" + str(uuid.uuid4()))
+                                                     name=app + "_" + version + "_" + str(uuid.uuid4()),
+                                                     cpu_shares=slots,
+                                                     mem_limit=self.config.slot_memory_mb * slots * 1024 * 1024)
 
         # start the container
         node_connection.start(container["Id"], port_bindings={8080: None})
@@ -105,9 +122,10 @@ class Connection(object):
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(inspection_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
 
-        return Instance(id=container["Id"],
-                        app=app,
-                        version=version,
-                        node=node,
-                        port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
-                        environment=environment)
+        return dict(id=container["Id"],
+                    app=app,
+                    version=version,
+                    node=node,
+                    port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
+                    environment=environment,
+                    slots=container["Config"]["CpuShares"])

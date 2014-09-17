@@ -1,7 +1,7 @@
 import unittest
 from mock import patch, MagicMock
 from captain.connection import Connection
-from captain.model import Instance
+from captain import exceptions
 from captain.tests.util_mock import ClientMock
 
 
@@ -14,6 +14,9 @@ class TestConnection(unittest.TestCase):
         self.config.slug_runner_command = "runner command"
         self.config.slug_runner_image = "runner/image"
         self.config.docker_gc_grace_period = 86400
+        self.config.slots_per_node = 10
+        self.config.slot_memory_mb = 128
+        self.config.default_slots_per_instance = 2
 
     @patch('captain.connection.time')
     @patch('docker.Client')
@@ -64,7 +67,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(docker_conn1.remove_container.call_count, 1)
         self.assertEqual(docker_conn2.remove_container.call_count, 0)
         # jh23899fg00029 doesn't have captain ports defined and should be ignored.
-        self.assertFalse([ i for i in instances if i["id"] == "jh23899fg00029" ])
+        self.assertFalse([i for i in instances if i["id"] == "jh23899fg00029"])
 
     @patch('docker.Client')
     @patch('uuid.uuid4')
@@ -72,15 +75,13 @@ class TestConnection(unittest.TestCase):
         # given
         (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
         uuid_mock.return_value = 'SOME-UUID'
-        instance_to_start = Instance(None, "paye", "216", "node-1", None,
-                                     {
-                                         'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
-                                         'JAVA_OPTS': "-Xmx256m -Xms256m"
-                                     })
 
         # when
         connection = Connection(self.config)
-        started_instance = connection.start_instance(instance_to_start)
+        started_instance = connection.start_instance(
+            "paye", "216", "node-1", None,
+            {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
+             'JAVA_OPTS': "-Xmx256m -Xms256m"}, 2)
 
         # then
         self.assertEqual("eba8bea2600029", started_instance["id"])
@@ -91,6 +92,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(2, started_instance["environment"].__len__())
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", started_instance["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", started_instance["environment"]["JAVA_OPTS"])
+        self.assertEqual(2, started_instance["slots"])
 
         mock_client_node1.create_container.assert_called_with(image=self.config.slug_runner_image,
                                                               command=self.config.slug_runner_command,
@@ -102,7 +104,30 @@ class TestConnection(unittest.TestCase):
                                                                   'JAVA_OPTS': '-Xmx256m -Xms256m'
                                                               },
                                                               detach=True,
-                                                              name="paye_216_SOME-UUID")
+                                                              name="paye_216_SOME-UUID",
+                                                              cpu_shares=2,
+                                                              mem_limit=256 * 1024 * 1024,
+                                                              )
+
+        connection.start_instance(
+            "paye", "216", "node-1", None,
+            {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
+             'JAVA_OPTS': "-Xmx256m -Xms256m"})
+
+        mock_client_node1.create_container.assert_called_with(image=self.config.slug_runner_image,
+                                                              command=self.config.slug_runner_command,
+                                                              ports=[8080],
+                                                              environment={
+                                                                  'PORT': '8080',
+                                                                  'SLUG_URL': 'http://host/paye-216-slug.tgz',
+                                                                  'HMRC_CONFIG': '-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080',
+                                                                  'JAVA_OPTS': '-Xmx256m -Xms256m'
+                                                              },
+                                                              detach=True,
+                                                              name="paye_216_SOME-UUID",
+                                                              cpu_shares=2,
+                                                              mem_limit=256 * 1024 * 1024,
+                                                              )
 
         mock_client_node1.start.assert_called_with("eba8bea2600029", port_bindings={8080: None})
 
@@ -162,3 +187,46 @@ class TestConnection(unittest.TestCase):
 
         self.assertFalse(mock_client_node2.stop.called)
         mock_client_node2.remove_container.assert_not_called_with('nonexisting-instance')
+
+    @patch('docker.Client')
+    def test_over_capacity(self, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(self.config)
+        # Force an over capacity error
+        desired_slots = self.config.slots_per_node + 1
+
+        # then
+        self.assertRaises(exceptions.NodeOutOfCapacityException,
+                          connection.start_instance, "paye", "216", "node-1", None,
+                          {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
+                           'JAVA_OPTS': "-Xmx256m -Xms256m"}, desired_slots)
+
+    @patch('docker.Client')
+    def test_get_node_details(self, docker_client):
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        connection = Connection(self.config)
+
+        self.assertRaises(exceptions.NoSuchNodeException, connection.get_node, "bum-node-1")
+
+        node_details = connection.get_node("node-1")
+        self.assertDictEqual(
+            {"id": "node-1",
+             "slots": {"free": 6, "used": 4, "total": 10}},
+            node_details
+        )
+
+    @patch('docker.Client')
+    def test_get_nodes(self, docker_client):
+        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        connection = Connection(self.config)
+
+        nodes = connection.get_nodes()
+        self.assertTrue(len(nodes) == 2)
+        self.assertIn(
+            {"id": "node-1",
+             "slots": {"free": 6, "used": 4, "total": 10}},
+            nodes
+        )
