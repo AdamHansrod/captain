@@ -214,7 +214,7 @@ class TestConnection(unittest.TestCase):
         node_details = connection.get_node("node-1")
         self.assertDictEqual(
             {"id": "node-1",
-             "slots": {"free": 8, "used": 2, "total": 10}},
+             "slots": {"free": 6, "used": 4, "total": 10}},
             node_details
         )
 
@@ -227,6 +227,6 @@ class TestConnection(unittest.TestCase):
         self.assertTrue(len(nodes) == 2)
         self.assertIn(
             {"id": "node-1",
-             "slots": {"free": 8, "used": 2, "total": 10}},
+             "slots": {"free": 6, "used": 4, "total": 10}},
             nodes
         )
