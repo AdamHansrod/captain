@@ -38,7 +38,7 @@ class Connection(object):
     def get_node(self, name):
         if name not in self.node_connections:
             raise exceptions.NoSuchNodeException()
-        countainer_count = reduce(lambda x,y: x+y["slots"], self.get_instances(node_filter=name), 0)
+        countainer_count = reduce(lambda x, y: x + y["slots"], self.get_instances(node_filter=name), 0)
         return {"id": name,
                 "slots": {
                     "total": self.config.slots_per_node,
