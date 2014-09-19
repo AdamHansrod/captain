@@ -1,8 +1,9 @@
-from flask import Flask, g, request
+from flask import Flask, g, request, redirect
 from flask.ext import restful
 from captain.config import Config
 from captain.connection import Connection
 from captain import exceptions
+import socket
 
 app = Flask(__name__)
 app.debug = True
@@ -45,6 +46,16 @@ class RestInstance(restful.Resource):
             restful.abort(404)
 
     def delete(self, instance_id):
+        if instance_id.startswith(socket.gethostname()):
+            # My hostname is the short container ID.
+            # I've just been asked to kill myself.
+            #   I'll send a redirect to try again instead of committing suicide.
+            return redirect(
+                api.url_for(
+                    self,
+                    instance_id=instance_id,
+                ), code=307)
+
         stopped = g.captain_conn.stop_instance(instance_id)
 
         if stopped:
