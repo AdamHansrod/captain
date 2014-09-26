@@ -15,5 +15,7 @@ fi
 rm -fr target
 mkdir target
 nosetests --with-xunit --xunit-file=target/nosetests.xml --with-xcover --xcoverage-file=target/coverage/coverage.xml --cover-package=captain --cover-erase --cover-html-dir=target/coverage --cover-html
+result=$?
 
 deactivate
+exit $result
