@@ -1,3 +1,8 @@
+Captain
+=======
+
+[![Build Status](https://travis-ci.org/hmrc/captain.svg?branch=master)](https://travis-ci.org/hmrc/captain)
+
 ## What is it?
 
 Captain is an API that can be used to start and stop a [slug](https://devcenter.heroku.com/articles/slug-compiler) on a cluser of nodes.
