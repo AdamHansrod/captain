@@ -15,7 +15,7 @@ Captain abstracts away the need to talk a low level API and replaces it with a s
 
 ## How do we run it?
 
-The recomended way to run captain is as a slug using captan but it can be run standalone, which is also the easiest way to bootstrap it as a slug. Something like [Flynns slugbuilder](https://github.com/flynn-archive/slugrunner) can be used to build slugs.
+The recomended way to run captain is as a slug using captain but it can be run standalone, which is also the easiest way to bootstrap it as a slug. Something like [Flynns slugbuilder](https://github.com/flynn-archive/slugrunner) can be used to build slugs.
 At a minimum it needs envrionments of `DOCKER_NODES` set to a comma separated list of the http uris for Docker on each app server, `SLUG_RUNNER_COMMAND` set to `"start web"`, `SLUG_RUNNER_IMAGE` set to `"flynn/slugrunner"` and `PORT` set to the port to listen on.
 
 ## The API
