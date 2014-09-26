@@ -1,6 +1,6 @@
 ## What is it?
 
-Captain is an API that can be used to start and stop a [slug](https://devcenter.heroku.com/articles/slug-compiler) on a cluser of nodes.
+Captain is an API that can be used to start and stop a [slug](https://devcenter.heroku.com/articles/slug-compiler) on a cluster of nodes.
 Captain aims to dogfood itself, meaning it can be deployed and managed by itself after an initial bootstrap.
 
 ## Why did we write it?
