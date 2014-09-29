@@ -30,7 +30,7 @@ class Connection(object):
                     now = time.mktime(time.localtime())
                     if now - container["Created"] > self.config.docker_gc_grace_period:
                         node_conn.remove_container(container["Id"])
-                elif len(container["Ports"]) == 1:
+                elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                     node_container = node_conn.inspect_container(container["Id"])
                     instances.append(self.__get_instance(node, node_container))
         return instances
