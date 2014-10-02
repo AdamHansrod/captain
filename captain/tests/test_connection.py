@@ -10,7 +10,6 @@ class TestConnection(unittest.TestCase):
     def setUp(self):
         self.config = MagicMock()
         self.config.docker_nodes = ["http://node-1/", "http://node-2/"]
-        self.config.slug_path = "http://host/{app_name}-{app_version}-slug.tgz"
         self.config.slug_runner_command = "runner command"
         self.config.slug_runner_image = "runner/image"
         self.config.docker_gc_grace_period = 86400
@@ -36,9 +35,9 @@ class TestConnection(unittest.TestCase):
         instance1 = instances[0]
         self.assertEqual("656ca7c307d178", instance1["id"])
         self.assertEqual("ers-checking-frontend-27", instance1["app"])
-        self.assertEqual(None, instance1["version"])
         self.assertEqual("node-1", instance1["node"])
         self.assertEqual(9225, instance1["port"])
+        self.assertEqual("https://host/ers-checking-frontend_27.tgz", instance1["slug_uri"])
         self.assertEqual(2, instance1["environment"].__len__())
         self.assertEqual("-Dapplication.secret=H7dVw$PlJiD)^U,oa4TA1pa]pT:4ETLqbL&2P=n6T~p,A*}^.Y46@PQOV~9(B09Hc]t7-hsf~&@w=zH -Dapplication.log=INFO -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080 -Dgovuk-tax.Prod.google-analytics.token=UA-43414424-2 -Drun.mode=Prod -Dsession.secure=true -Dsession.httpOnly=true -Dcookie.encryption.key=fqpLDZ4smuDsekHkrEBlCA==", instance1["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance1["environment"]["JAVA_OPTS"])
@@ -46,9 +45,9 @@ class TestConnection(unittest.TestCase):
         instance2 = instances[1]
         self.assertEqual("eba8bea2600029", instance2["id"])
         self.assertEqual("paye", instance2["app"])
-        self.assertEqual("216", instance2["version"])
         self.assertEqual("node-1", instance2["node"])
         self.assertEqual(9317, instance2["port"])
+        self.assertEqual("https://host/paye_216.tgz", instance2["slug_uri"])
         self.assertEqual(2, instance2["environment"].__len__())
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", instance2["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance2["environment"]["JAVA_OPTS"])
@@ -56,7 +55,6 @@ class TestConnection(unittest.TestCase):
         instance3 = instances[2]
         self.assertEqual("80be2a9e62ba00", instance3["id"])
         self.assertEqual("paye", instance3["app"])
-        self.assertEqual("216", instance3["version"])
         self.assertEqual("node-2", instance3["node"])
         self.assertEqual(9317, instance3["port"])
         self.assertEqual(2, instance3["environment"].__len__())
@@ -79,16 +77,16 @@ class TestConnection(unittest.TestCase):
         # when
         connection = Connection(self.config)
         started_instance = connection.start_instance(
-            "paye", "216", "node-1", None,
+            "paye", "https://host/paye_216.tgz", "node-1", None,
             {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
              'JAVA_OPTS': "-Xmx256m -Xms256m"}, 2)
 
         # then
         self.assertEqual("eba8bea2600029", started_instance["id"])
         self.assertEqual("paye", started_instance["app"])
-        self.assertEqual("216", started_instance["version"])
         self.assertEqual("node-1", started_instance["node"])
         self.assertEqual(9317, started_instance["port"])
+        self.assertEqual("https://host/paye_216.tgz", started_instance["slug_uri"])
         self.assertEqual(2, started_instance["environment"].__len__())
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", started_instance["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", started_instance["environment"]["JAVA_OPTS"])
@@ -99,18 +97,18 @@ class TestConnection(unittest.TestCase):
                                                               ports=[8080],
                                                               environment={
                                                                   'PORT': '8080',
-                                                                  'SLUG_URL': 'http://host/paye-216-slug.tgz',
+                                                                  'SLUG_URL': 'https://host/paye_216.tgz',
                                                                   'HMRC_CONFIG': '-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080',
                                                                   'JAVA_OPTS': '-Xmx256m -Xms256m'
                                                               },
                                                               detach=True,
-                                                              name="paye_216_SOME-UUID",
+                                                              name="paye_SOME-UUID",
                                                               cpu_shares=2,
                                                               mem_limit=256 * 1024 * 1024,
                                                               )
 
         connection.start_instance(
-            "paye", "216", "node-1", None,
+            "paye", "http://host/paye-216-slug.tgz", "node-1", None,
             {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
              'JAVA_OPTS': "-Xmx256m -Xms256m"})
 
@@ -124,7 +122,7 @@ class TestConnection(unittest.TestCase):
                                                                   'JAVA_OPTS': '-Xmx256m -Xms256m'
                                                               },
                                                               detach=True,
-                                                              name="paye_216_SOME-UUID",
+                                                              name="paye_SOME-UUID",
                                                               cpu_shares=2,
                                                               mem_limit=256 * 1024 * 1024,
                                                               )
@@ -200,7 +198,7 @@ class TestConnection(unittest.TestCase):
 
         # then
         self.assertRaises(exceptions.NodeOutOfCapacityException,
-                          connection.start_instance, "paye", "216", "node-1", None,
+                          connection.start_instance, "paye", "http://host/paye-216-slug.tgz", "node-1", None,
                           {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
                            'JAVA_OPTS': "-Xmx256m -Xms256m"}, desired_slots)
 
