@@ -48,9 +48,9 @@ class Connection(object):
     def get_nodes(self):
         return [self.get_node(node) for node in self.node_connections.keys()]
 
-    def start_instance(self, app, version, node, allocated_port=None, environment={}, slots=None):
+    def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None):
         environment["PORT"] = "8080"
-        environment["SLUG_URL"] = self.config.slug_path.format(app_name=app, app_version=version)
+        environment["SLUG_URL"] = slug_uri
 
         if not slots:
             slots = self.config.default_slots_per_instance
@@ -65,7 +65,7 @@ class Connection(object):
                                                      ports=[8080],
                                                      environment=environment,
                                                      detach=True,
-                                                     name=app + "_" + version + "_" + str(uuid.uuid4()),
+                                                     name=app + "_" + str(uuid.uuid4()),
                                                      cpu_shares=slots,
                                                      mem_limit=self.config.slot_memory_mb * slots * 1024 * 1024)
 
@@ -107,24 +107,23 @@ class Connection(object):
         return docker.Client(base_url=base_url, version="1.12", timeout=20)
 
     def __get_instance(self, node, container):
-        try:
-            app, version = container["Name"][1:].split("_", 1)
-            version = version.split("_")[0]
-        except ValueError:
-            app, version = container["Name"][1:], None
+        app = container["Name"][1:].split("_")[0]
 
         environment = {}
+        slug_uri = None
         for env_item in container["Config"]["Env"]:
             env_item_key, env_item_value = env_item.split("=", 1)
             if env_item_key not in ['HOME', 'PATH', 'SLUG_URL', 'PORT']:
                 environment[env_item_key] = env_item_value
+            if env_item_key == 'SLUG_URL':
+                slug_uri = env_item_value
 
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(inspection_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
 
         return dict(id=container["Id"],
                     app=app,
-                    version=version,
+                    slug_uri=slug_uri,
                     node=node,
                     port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
                     environment=environment,

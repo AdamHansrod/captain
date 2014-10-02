@@ -11,10 +11,6 @@ class Config(object):
         self.slot_memory_mb = int(os.getenv("SLOT_MEMORY_MB", "128"))
         self.default_slots_per_instance = int(os.getenv("DEFAULT_SLOTS_PER_INSTANCE", "2"))
 
-        self.slug_path = os.getenv("SLUG_PATH")
-        if self.slug_path is None:
-            raise Exception("SLUG_PATH should be specified")
-
         self.slug_runner_command = os.getenv("SLUG_RUNNER_COMMAND")
         if self.slug_runner_command is None:
             raise Exception("SLUG_RUNNER_COMMAND should be specified")
