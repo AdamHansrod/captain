@@ -34,7 +34,7 @@ $ curl captain.service/instances/
         "node": "app-1", 
         "port": 49490, 
         "slots": 2, 
-        "version": "57"
+        "slug_uri": "http://slugserver/random-backend-v1.tgz"
     }, 
     {
         "app": "random-frontend", 
@@ -47,7 +47,7 @@ $ curl captain.service/instances/
         "node": "app-2", 
         "port": 49489,
         "slots": 2, 
-        "version": "47"
+        "slug_uri": "http://slugserver/random-frontend-v4.tgz"
     }
 ]
 ```
