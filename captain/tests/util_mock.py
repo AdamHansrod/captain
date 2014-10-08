@@ -1,5 +1,6 @@
 from mock import MagicMock
 import docker.errors
+from requests.exceptions import ConnectionError
 
 
 class ClientMock():
@@ -18,10 +19,13 @@ class ClientMock():
         self.client_node2.inspect_container = MagicMock(side_effect=lambda container_id:
                                                         self.__get_container(self.__inspect_container_cmd_return_node2,
                                                                              container_id))
+        self.client_node3 = MagicMock()
+        self.client_node3.containers = MagicMock(side_effect=ConnectionError())
+        self.client_node3.inspect_container = MagicMock(side_effect=ConnectionError())
 
     def mock_two_docker_nodes(self, docker_client):
         docker_client.side_effect = self.__side_effect
-        return self.client_node1, self.client_node2
+        return self.client_node1, self.client_node2, self.client_node3
 
     def __side_effect(self, base_url, version, timeout):
         if "node-1" in base_url:
@@ -29,6 +33,9 @@ class ClientMock():
 
         if "node-2" in base_url:
             return self.client_node2
+
+        if "node-3" in base_url:
+            return self.client_node3
 
         raise Exception("{} not mocked".format(base_url))
 

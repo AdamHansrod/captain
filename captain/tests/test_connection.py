@@ -3,13 +3,14 @@ from mock import patch, MagicMock
 from captain.connection import Connection
 from captain import exceptions
 from captain.tests.util_mock import ClientMock
+from requests.exceptions import ConnectionError
 
 
 class TestConnection(unittest.TestCase):
 
     def setUp(self):
         self.config = MagicMock()
-        self.config.docker_nodes = ["http://node-1/", "http://node-2/"]
+        self.config.docker_nodes = ["http://node-1/", "http://node-2/", "http://node-3/"]
         self.config.slug_runner_command = "runner command"
         self.config.slug_runner_image = "runner/image"
         self.config.docker_gc_grace_period = 86400
@@ -21,7 +22,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_returns_all_instances_with_ports(self, docker_client, time):
         # given
-        (docker_conn1, docker_conn2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
         time.mktime = MagicMock(return_value=1409842966.0)
         time.localtime = MagicMock()
 
@@ -67,11 +68,16 @@ class TestConnection(unittest.TestCase):
         # jh23899fg00029 doesn't have captain ports defined and should be ignored.
         self.assertFalse([i for i in instances if i["id"] == "jh23899fg00029"])
 
+        def thing():
+            raise ConnectionError()
+        self.assertRaises(ConnectionError, thing)
+        self.assertRaises(ConnectionError, docker_conn3.containers)
+
     @patch('docker.Client')
     @patch('uuid.uuid4')
     def test_starts_instance(self, uuid_mock, docker_client):
         # given
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
         uuid_mock.return_value = 'SOME-UUID'
 
         # when
@@ -135,7 +141,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_stops_instance(self, docker_client):
         # given
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
         connection = Connection(self.config)
@@ -153,7 +159,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_stops_instance_even_if_remove_container_fails(self, docker_client):
         # given
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
         connection = Connection(self.config)
@@ -171,7 +177,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_returns_false_when_trying_to_stop_nonexisting_instance(self, docker_client):
         # given
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
         connection = Connection(self.config)
@@ -189,7 +195,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_over_capacity(self, docker_client):
         # given
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
         connection = Connection(self.config)
@@ -204,7 +210,7 @@ class TestConnection(unittest.TestCase):
 
     @patch('docker.Client')
     def test_get_node_details(self, docker_client):
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
         connection = Connection(self.config)
 
         self.assertRaises(exceptions.NoSuchNodeException, connection.get_node, "bum-node-1")
@@ -218,11 +224,11 @@ class TestConnection(unittest.TestCase):
 
     @patch('docker.Client')
     def test_get_nodes(self, docker_client):
-        (mock_client_node1, mock_client_node2) = ClientMock().mock_two_docker_nodes(docker_client)
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
         connection = Connection(self.config)
 
         nodes = connection.get_nodes()
-        self.assertTrue(len(nodes) == 2)
+        self.assertTrue(len(nodes) == 3)
         self.assertIn(
             {"id": "node-1",
              "slots": {"free": 6, "used": 4, "total": 10}},
