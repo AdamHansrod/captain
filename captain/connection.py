@@ -3,6 +3,7 @@ import docker
 from urlparse import urlparse
 from captain import exceptions
 import time
+from requests.exceptions import ConnectionError
 
 
 class Connection(object):
@@ -22,9 +23,13 @@ class Connection(object):
         for node, node_conn in self.node_connections.items():
             if node_filter and node != node_filter:
                 continue
-            node_containers = node_conn.containers(
-                quiet=False, all=True, trunc=False, latest=False,
-                since=None, before=None, limit=-1)
+            try:
+                node_containers = node_conn.containers(
+                    quiet=False, all=True, trunc=False, latest=False,
+                    since=None, before=None, limit=-1)
+            except ConnectionError:
+                continue
+                #raise ConnectionError()
             for container in node_containers:
                 if container["Status"].startswith("Exited"):
                     now = time.mktime(time.localtime())
