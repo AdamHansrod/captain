@@ -4,6 +4,7 @@ from urlparse import urlparse
 from captain import exceptions
 import time
 from requests.exceptions import ConnectionError
+import struct
 
 
 class Connection(object):
@@ -109,7 +110,31 @@ class Connection(object):
         else:
             base_url = "{}://{}".format(address.scheme, address.hostname)
 
-        return docker.Client(base_url=base_url, version="1.12", timeout=20)
+        c = docker.Client(base_url=base_url, version="1.12", timeout=20)
+
+        # This is a hack to allow logs to work thru nginx.
+        # It will break bidirectional traffic on .attach but fortunately we don't (yet) use it.
+        def __hacked_multiplexed_socket_stream_helper(response):
+            c._raise_for_status(response)
+            data_buffer = ""
+            length = None
+            i = response.iter_content(10)
+            while True:
+                try:
+                    data_buffer += i.next()
+                except StopIteration:
+                    return
+                if not length and len(data_buffer) > 8:
+                    header = data_buffer[:8]
+                    _, length = struct.unpack('>BxxxL', header)
+
+                if length and len(data_buffer[8:]) >= length:
+                    yield data_buffer[8:8 + length]
+                    data_buffer = data_buffer[8 + length:]
+                    length = None
+                    continue
+        c._multiplexed_socket_stream_helper = __hacked_multiplexed_socket_stream_helper
+        return c
 
     def __get_instance(self, node, container):
         app = container["Name"][1:].split("_")[0]
@@ -133,3 +158,16 @@ class Connection(object):
                     port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
                     environment=environment,
                     slots=container["Config"]["CpuShares"])
+
+    def get_logs(self, instance_id, follow=False):
+        try:
+            instance_details = [i for i in self.get_instances() if i["id"] == instance_id][0]
+        except IndexError:
+            raise exceptions.NoSuchInstanceException()
+        node = instance_details["node"]
+        node_connection = self.node_connections[node]
+        if follow:
+            instance_logs = ({"msg": l} for l in node_connection.logs(instance_id, stream=True))
+        else:
+            instance_logs = ({"msg": "{}\n".format(l)} for l in node_connection.logs(instance_id).split("\n"))
+        return instance_logs

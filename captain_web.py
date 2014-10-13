@@ -1,9 +1,11 @@
-from flask import Flask, g, request, redirect
+from flask import Flask, g, request, redirect, Response
 from flask.ext import restful
+from flask.ext.restful import reqparse
 from captain.config import Config
 from captain.connection import Connection
 from captain import exceptions
 import socket
+import json
 
 app = Flask(__name__)
 app.debug = True
@@ -63,8 +65,22 @@ class RestInstance(restful.Resource):
         else:
             restful.abort(404)
 
+
+class RestInstanceLogs(restful.Resource):
+    def get(self, instance_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('follow', type=int, location='args', default=0)
+        args = parser.parse_args()
+
+        try:
+            r = Response(( "{}\n".format(json.dumps(l)) for l in g.captain_conn.get_logs(instance_id, follow=args.follow == 1)), mimetype='application/jsonstream')
+            return r
+        except exceptions.NoSuchInstanceException:
+            restful.abort(404)
+
 api.add_resource(RestInstances, '/instances/')
 api.add_resource(RestInstance, '/instances/<string:instance_id>')
+api.add_resource(RestInstanceLogs, '/instances/<string:instance_id>/logs')
 
 
 class RestNodes(restful.Resource):
