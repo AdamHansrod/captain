@@ -7,3 +7,7 @@ class NoSuchNodeException(Exception):
 
 class NodeOutOfCapacityException(Exception):
     pass
+
+
+class NoSuchInstanceException(Exception):
+    pass
