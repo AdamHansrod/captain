@@ -78,9 +78,16 @@ class RestInstanceLogs(restful.Resource):
         except exceptions.NoSuchInstanceException:
             restful.abort(404)
 
+
+class RestPing(restful.Resource):
+    def get(self):
+        r = Response( "{}", mimetype='application/json')
+
+
 api.add_resource(RestInstances, '/instances/')
 api.add_resource(RestInstance, '/instances/<string:instance_id>')
 api.add_resource(RestInstanceLogs, '/instances/<string:instance_id>/logs')
+api.add_resource(RestPing, '/ping/ping')
 
 
 class RestNodes(restful.Resource):
