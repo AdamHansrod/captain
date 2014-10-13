@@ -4,6 +4,7 @@ from captain.connection import Connection
 from captain import exceptions
 from captain.tests.util_mock import ClientMock
 from requests.exceptions import ConnectionError
+import itertools
 
 
 class TestConnection(unittest.TestCase):
@@ -221,6 +222,23 @@ class TestConnection(unittest.TestCase):
              "slots": {"free": 6, "used": 4, "total": 10}},
             node_details
         )
+
+    @patch('docker.Client')
+    def test_get_logs(self, docker_client):
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
+        connection = Connection(self.config)
+
+        self.assertRaises(exceptions.NoSuchInstanceException, connection.get_logs, "non-existant")
+
+        instance_logs = connection.get_logs("80be2a9e62ba00")
+        self.assertEqual(
+            ({"msg": "this is line 1\n"}, {"msg": "this is line 2\n"}),
+            tuple(itertools.islice(instance_logs, 2)))
+
+        instance_logs = connection.get_logs("eba8bea2600029", follow=True)
+        self.assertEqual(
+            ({"msg": "this is line 1"}, {"msg": "this is line 2"}, {"msg": "this is line 3"}),
+            tuple(itertools.islice(instance_logs, 3)))
 
     @patch('docker.Client')
     def test_get_nodes(self, docker_client):
