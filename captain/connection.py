@@ -34,7 +34,11 @@ class Connection(object):
             for container in node_containers:
                 if container["Status"].startswith("Exited"):
                     now = time.mktime(time.localtime())
-                    if now - container["Created"] > self.config.docker_gc_grace_period:
+                    node_container = node_conn.inspect_container(container["Id"])
+                    exit_time = node_container["State"]['FinishedAt']
+                    container_exited = time.mktime(time.strptime(exit_time.split('.')[0],
+                        '%Y-%m-%dT%H:%M:%S'))
+                    if now - container_exited > self.config.docker_gc_grace_period:
                         node_conn.remove_container(container["Id"])
                 elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                     node_container = node_conn.inspect_container(container["Id"])
