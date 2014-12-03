@@ -22,15 +22,11 @@ class TestConnection(unittest.TestCase):
     def __timecalc(self, time_variable=None):
         return sentinel.DEFAULT if time_variable else 1409842966.0
 
-    def __nodude(self, **kwargs):
-        return sentinel.DEFAULT
-
     @patch('captain.connection.time')
     @patch('docker.Client')
     def test_returns_all_instances_with_ports(self, docker_client, time):
         # given
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
-        time.struct_time = MagicMock(side_effect=self.__nodude)
         time.mktime = MagicMock(side_effect=self.__timecalc)
         time.time = MagicMock(side_effect=self.__timecalc)
         time.localtime = MagicMock()
