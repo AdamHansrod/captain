@@ -2,7 +2,7 @@ import uuid
 import docker
 from urlparse import urlparse
 from captain import exceptions
-import time
+import datetime
 from requests.exceptions import ConnectionError
 import struct
 
@@ -33,8 +33,10 @@ class Connection(object):
                 #raise ConnectionError()
             for container in node_containers:
                 if container["Status"].startswith("Exited"):
-                    now = time.mktime(time.localtime())
-                    if now - container["Created"] > self.config.docker_gc_grace_period:
+                    node_container = node_conn.inspect_container(container["Id"])
+                    formatted_exit_time = node_container["State"]['FinishedAt']
+                    exit_time = datetime.datetime.strptime(formatted_exit_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+                    if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
                         node_conn.remove_container(container["Id"])
                 elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                     node_container = node_conn.inspect_container(container["Id"])

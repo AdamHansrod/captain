@@ -19,13 +19,10 @@ class TestConnection(unittest.TestCase):
         self.config.slot_memory_mb = 128
         self.config.default_slots_per_instance = 2
 
-    @patch('captain.connection.time')
     @patch('docker.Client')
-    def test_returns_all_instances_with_ports(self, docker_client, time):
+    def test_returns_all_instances_with_ports(self, docker_client):
         # given
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
-        time.mktime = MagicMock(return_value=1409842966.0)
-        time.localtime = MagicMock()
 
         # when
         connection = Connection(self.config)
