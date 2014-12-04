@@ -19,17 +19,10 @@ class TestConnection(unittest.TestCase):
         self.config.slot_memory_mb = 128
         self.config.default_slots_per_instance = 2
 
-    def __timecalc(self, time_variable=None):
-        return sentinel.DEFAULT if time_variable else 1409842966.0
-
-    @patch('captain.connection.time')
     @patch('docker.Client')
-    def test_returns_all_instances_with_ports(self, docker_client, time):
+    def test_returns_all_instances_with_ports(self, docker_client):
         # given
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
-        time.mktime = MagicMock(side_effect=self.__timecalc)
-        time.time = MagicMock(side_effect=self.__timecalc)
-        time.localtime = MagicMock()
 
         # when
         connection = Connection(self.config)

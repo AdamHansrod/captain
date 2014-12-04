@@ -1,6 +1,7 @@
 from mock import MagicMock
 import docker.errors
 from requests.exceptions import ConnectionError
+import datetime
 
 
 class ClientMock():
@@ -183,7 +184,7 @@ class ClientMock():
             u'ProcessLabel': u'',
             u'ResolvConfPath': u'/etc/resolv.conf',
             u'State': {u'ExitCode': 127,
-                       u'FinishedAt': u'2014-09-02T09:00:00.906207449Z',
+                       u'FinishedAt': (datetime.datetime.now() - datetime.timedelta(days=1, minutes=10)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                        u'Paused': False,
                        u'Pid': 35327,
                        u'Running': False,
@@ -393,7 +394,7 @@ class ClientMock():
             u'ProcessLabel': u'',
             u'ResolvConfPath': u'/etc/resolv.conf',
             u'State': {u'ExitCode': 127,
-                       u'FinishedAt': u'2014-09-04T15:00:40.906207449Z',
+                       u'FinishedAt': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                        u'Paused': False,
                        u'Pid': 35327,
                        u'Running': False,
