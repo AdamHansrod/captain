@@ -1,5 +1,5 @@
 import unittest
-from mock import patch, MagicMock, sentinel
+from mock import patch, MagicMock
 from captain.connection import Connection
 from captain import exceptions
 from captain.tests.util_mock import ClientMock

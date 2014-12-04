@@ -2,10 +2,11 @@ import captain_web
 import os
 from nose.tools import eq_
 
-os.environ["SLUG_RUNNER_COMMAND"]=''
-os.environ["SLUG_RUNNER_IMAGE"]=''
+os.environ["SLUG_RUNNER_COMMAND"] = ''
+os.environ["SLUG_RUNNER_IMAGE"] = ''
 
-test_app=captain_web.app.test_client()
+test_app = captain_web.app.test_client()
+
 
 def test_get_ping():
     """
