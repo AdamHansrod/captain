@@ -184,7 +184,8 @@ class ClientMock():
             u'ProcessLabel': u'',
             u'ResolvConfPath': u'/etc/resolv.conf',
             u'State': {u'ExitCode': 127,
-                       u'FinishedAt': (datetime.datetime.now() - datetime.timedelta(days=1, minutes=10)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+                       # This date format tests the fact that datetime wants microseconds but docker returns a higher granularity.
+                       u'FinishedAt': "{}1234Z".format((datetime.datetime.now() - datetime.timedelta(days=1, minutes=10)).strftime('%Y-%m-%dT%H:%M:%S.%f')),
                        u'Paused': False,
                        u'Pid': 35327,
                        u'Running': False,
