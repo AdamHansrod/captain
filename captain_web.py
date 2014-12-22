@@ -22,6 +22,14 @@ def before_request():
     g.captain_conn = Connection(Config())
 
 
+@app.teardown_appcontext
+def teardown_request(exception):
+    docker_connection = getattr(g, 'captain_conn', None)
+    print docker_connection
+    if docker_connection is not None:
+        docker_connection.close()
+
+
 class RestInstances(restful.Resource):
     def get(self):
         return g.captain_conn.get_instances()
