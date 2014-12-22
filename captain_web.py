@@ -81,7 +81,7 @@ class RestInstanceLogs(restful.Resource):
         args = parser.parse_args()
 
         try:
-            r = Response(( "{}\n".format(json.dumps(l)) for l in g.captain_conn.get_logs(instance_id, follow=args.follow == 1)), mimetype='application/jsonstream')
+            r = Response(("{}\n".format(json.dumps(l)) for l in g.captain_conn.get_logs(instance_id, follow=args.follow == 1)), mimetype='application/jsonstream')
             return r
         except exceptions.NoSuchInstanceException:
             restful.abort(404)
@@ -89,7 +89,7 @@ class RestInstanceLogs(restful.Resource):
 
 class RestPing(restful.Resource):
     def get(self):
-        r = Response( "{}", mimetype='application/json')
+        Response("{}", mimetype='application/json')
 
 
 api.add_resource(RestInstances, '/instances/')
