@@ -19,12 +19,10 @@ class Connection(object):
             docker_conn.auth = (address.username, address.password)
             self.node_connections[address.hostname] = docker_conn
 
-
     def close(self):
         for node in self.node_connections:
             if node is not None:
                 self.node_connections[node].close()
-
 
     def get_instances(self, node_filter=None):
         instances = []
@@ -37,7 +35,6 @@ class Connection(object):
                     since=None, before=None, limit=-1)
             except (ConnectionError, Timeout):
                 continue
-                #raise ConnectionError()
             for container in node_containers:
                 if container["Status"].startswith("Exited"):
                     node_container = node_conn.inspect_container(container["Id"])
