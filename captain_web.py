@@ -25,7 +25,6 @@ def before_request():
 @app.teardown_appcontext
 def teardown_request(exception):
     docker_connection = getattr(g, 'captain_conn', None)
-    print docker_connection
     if docker_connection is not None:
         docker_connection.close()
 
