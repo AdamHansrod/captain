@@ -3,8 +3,9 @@ import docker
 from urlparse import urlparse
 from captain import exceptions
 import datetime
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, Timeout
 import struct
+import logging
 
 
 class Connection(object):
@@ -19,6 +20,11 @@ class Connection(object):
             docker_conn.auth = (address.username, address.password)
             self.node_connections[address.hostname] = docker_conn
 
+    def close(self):
+        for node in self.node_connections:
+            if node is not None:
+                self.node_connections[node].close()
+
     def get_instances(self, node_filter=None):
         instances = []
         for node, node_conn in self.node_connections.items():
@@ -28,9 +34,9 @@ class Connection(object):
                 node_containers = node_conn.containers(
                     quiet=False, all=True, trunc=False, latest=False,
                     since=None, before=None, limit=-1)
-            except ConnectionError:
+            except (ConnectionError, Timeout) as e:
+                logging.error("Error communication with {}: {}".format(node, e))
                 continue
-                #raise ConnectionError()
             for container in node_containers:
                 if container["Status"].startswith("Exited"):
                     node_container = node_conn.inspect_container(container["Id"])
@@ -112,7 +118,7 @@ class Connection(object):
         else:
             base_url = "{}://{}".format(address.scheme, address.hostname)
 
-        c = docker.Client(base_url=base_url, version="1.12", timeout=20)
+        c = docker.Client(base_url=base_url, version="1.12", timeout=self.config.docker_timeout)
 
         # This is a hack to allow logs to work thru nginx.
         # It will break bidirectional traffic on .attach but fortunately we don't (yet) use it.
