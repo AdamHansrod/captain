@@ -54,7 +54,6 @@ class Connection(object):
             raise exceptions.NoSuchNodeException()
         try:
             self.node_connections[name].ping()
-            logging.error("tom - {} - {}".format(name, self.get_instances(node_filter=name)))
             countainer_count = reduce(lambda x, y: x + y["slots"], self.get_instances(node_filter=name), 0)
             return {"id": name,
                     "slots": {
