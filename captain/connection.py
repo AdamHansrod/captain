@@ -52,12 +52,24 @@ class Connection(object):
     def get_node(self, name):
         if name not in self.node_connections:
             raise exceptions.NoSuchNodeException()
-        countainer_count = reduce(lambda x, y: x + y["slots"], self.get_instances(node_filter=name), 0)
-        return {"id": name,
-                "slots": {
-                    "total": self.config.slots_per_node,
-                    "used": countainer_count,
-                    "free": self.config.slots_per_node - countainer_count}}
+        try:
+            self.node_connections[name].ping()
+            logging.error("tom - {} - {}".format(name, self.get_instances(node_filter=name)))
+            countainer_count = reduce(lambda x, y: x + y["slots"], self.get_instances(node_filter=name), 0)
+            return {"id": name,
+                    "slots": {
+                        "total": self.config.slots_per_node,
+                        "used": countainer_count,
+                        "free": self.config.slots_per_node - countainer_count},
+                    "state": "healthy"}
+        except (ConnectionError, Timeout) as e:
+            logging.error("Error communication with {}: {}".format(name, e))
+            return {"id": name,
+                    "slots": {
+                        "total": 0,
+                        "used": 0,
+                        "free": 0},
+                    "state": repr(e)}
 
     def get_nodes(self):
         return [self.get_node(node) for node in self.node_connections.keys()]
