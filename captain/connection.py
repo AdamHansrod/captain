@@ -34,19 +34,19 @@ class Connection(object):
                 node_containers = node_conn.containers(
                     quiet=False, all=True, trunc=False, latest=False,
                     since=None, before=None, limit=-1)
+                for container in node_containers:
+                    if container["Status"].startswith("Exited"):
+                        node_container = node_conn.inspect_container(container["Id"])
+                        formatted_exit_time = node_container["State"]['FinishedAt']
+                        exit_time = datetime.datetime.strptime(formatted_exit_time.split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                        if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
+                            node_conn.remove_container(container["Id"])
+                    elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
+                        node_container = node_conn.inspect_container(container["Id"])
+                        instances.append(self.__get_instance(node, node_container))
             except (ConnectionError, Timeout) as e:
                 logging.error("Error communication with {}: {}".format(node, e))
                 continue
-            for container in node_containers:
-                if container["Status"].startswith("Exited"):
-                    node_container = node_conn.inspect_container(container["Id"])
-                    formatted_exit_time = node_container["State"]['FinishedAt']
-                    exit_time = datetime.datetime.strptime(formatted_exit_time.split('.')[0], '%Y-%m-%dT%H:%M:%S')
-                    if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
-                        node_conn.remove_container(container["Id"])
-                elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
-                    node_container = node_conn.inspect_container(container["Id"])
-                    instances.append(self.__get_instance(node, node_container))
         return instances
 
     def get_node(self, name):
