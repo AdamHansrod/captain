@@ -7,6 +7,7 @@ aniso8601==0.83
 argparse==1.2.1
 coverage==3.7.1
 docker-py==0.4.0
+futures==2.2.0
 gevent==1.0.1
 greenlet==0.4.4
 gunicorn==19.1.1
