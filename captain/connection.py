@@ -6,6 +6,7 @@ import datetime
 from requests.exceptions import ConnectionError, Timeout
 import struct
 import logging
+from concurrent import futures
 
 
 class Connection(object):
@@ -25,28 +26,40 @@ class Connection(object):
             if node is not None:
                 self.node_connections[node].close()
 
+    def get_node_instances(self, node, node_conn):
+        node_instances = []
+        node_containers = node_conn.containers(
+            quiet=False, all=True, trunc=False, latest=False,
+            since=None, before=None, limit=-1)
+        for container in node_containers:
+            if container["Status"].startswith("Exited"):
+                node_container = node_conn.inspect_container(container["Id"])
+                formatted_exit_time = node_container["State"]['FinishedAt']
+                exit_time = datetime.datetime.strptime(formatted_exit_time.split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
+                    node_conn.remove_container(container["Id"])
+            elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
+                node_container = node_conn.inspect_container(container["Id"])
+                node_instances.append(self.__get_instance(node, node_container))
+        return node_instances
+
     def get_instances(self, node_filter=None):
         instances = []
+        filtered_nodes = {}
         for node, node_conn in self.node_connections.items():
             if node_filter and node != node_filter:
+                logging.debug("Filtering node {}".format(node))
                 continue
-            try:
-                node_containers = node_conn.containers(
-                    quiet=False, all=True, trunc=False, latest=False,
-                    since=None, before=None, limit=-1)
-                for container in node_containers:
-                    if container["Status"].startswith("Exited"):
-                        node_container = node_conn.inspect_container(container["Id"])
-                        formatted_exit_time = node_container["State"]['FinishedAt']
-                        exit_time = datetime.datetime.strptime(formatted_exit_time.split('.')[0], '%Y-%m-%dT%H:%M:%S')
-                        if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
-                            node_conn.remove_container(container["Id"])
-                    elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
-                        node_container = node_conn.inspect_container(container["Id"])
-                        instances.append(self.__get_instance(node, node_container))
-            except (ConnectionError, Timeout) as e:
-                logging.error("Error communication with {}: {}".format(node, e))
-                continue
+            filtered_nodes[node]=node_conn
+        with futures.ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_instances = dict((executor.submit(self.get_node_instances, node, node_conn) , node ) for node, node_conn in filtered_nodes.items() )
+            for future in futures.as_completed(future_to_instances):
+                node = future_to_instances[future]
+                if future.exception() is not None:
+                    logging.error("Getting instances from {} generated an exception: {}".format(node, type(future.exception())))
+                else:
+                    instances =  instances + future.result()
+                    logging.debug("Get instances for {} found {}".format(node, len(future.result())))
         return instances
 
     def get_node(self, name):
@@ -71,7 +84,17 @@ class Connection(object):
                     "state": repr(e)}
 
     def get_nodes(self):
-        return [self.get_node(node) for node in self.node_connections.keys()]
+        nodes = []
+        with futures.ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_nodes = dict((executor.submit(self.get_node, node) , node ) for node in self.node_connections.keys() )
+            for future in futures.as_completed(future_to_nodes):
+                node = future_to_nodes[future]
+                if future.exception() is not None:
+                    logging.error("Getting details for {} generated an exception: {}".format(node, type(future.exception())))
+                else:
+                    nodes =  nodes + [future.result()]
+                    logging.debug("Got details for {}".format(node))
+        return nodes
 
     def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None):
         environment["PORT"] = "8080"
