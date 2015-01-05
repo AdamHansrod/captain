@@ -14,7 +14,7 @@ api = restful.Api(app, catch_all_404s=True)
 import logging
 stream_handler = logging.StreamHandler()
 app.logger.addHandler(stream_handler)
-app.logger.setLevel(logging.DEBUG)
+app.logger.setLevel(logging.INFO)
 
 
 @app.before_request
