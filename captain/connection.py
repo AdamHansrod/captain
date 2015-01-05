@@ -14,6 +14,7 @@ class Connection(object):
         self.config = config
 
         self.node_connections = {}
+        logging.debug("Setting up docker clients for {} configured nodes".format(len(config.docker_nodes)))
         for node in config.docker_nodes:
             address = urlparse(node)
             docker_conn = self.__get_connection(address)
@@ -23,6 +24,7 @@ class Connection(object):
 
     def close(self):
         for node in self.node_connections:
+            logging.debug("Closing connection to {}".format(node))
             if node is not None:
                 self.node_connections[node].close()
 
@@ -31,13 +33,17 @@ class Connection(object):
         node_containers = node_conn.containers(
             quiet=False, all=True, trunc=False, latest=False,
             since=None, before=None, limit=-1)
+        logging.debug("{} has {} containers".format(node, len(node_containers)))
         for container in node_containers:
             if container["Status"].startswith("Exited"):
+                logging.debug("Found exited container on {}".format(node))
                 node_container = node_conn.inspect_container(container["Id"])
                 formatted_exit_time = node_container["State"]['FinishedAt']
                 exit_time = datetime.datetime.strptime(formatted_exit_time.split('.')[0], '%Y-%m-%dT%H:%M:%S')
                 if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
+                    logging.info("Attempting to remove {} from {}".format(container["Id"], node))
                     node_conn.remove_container(container["Id"])
+                    logging.info("Removed {} from {}".format(container["Id"], node))
             elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                 node_container = node_conn.inspect_container(container["Id"])
                 node_instances.append(self.__get_instance(node, node_container))
@@ -64,10 +70,12 @@ class Connection(object):
 
     def get_node(self, name):
         if name not in self.node_connections:
+            logging.error("Node {} not configured".format(name))
             raise exceptions.NoSuchNodeException()
         try:
             self.node_connections[name].ping()
             countainer_count = reduce(lambda x, y: x + y["slots"], self.get_instances(node_filter=name), 0)
+            logging.debug("{} has {} containers".format(name, countainer_count))
             return {"id": name,
                     "slots": {
                         "total": self.config.slots_per_node,
@@ -101,6 +109,7 @@ class Connection(object):
         environment["SLUG_URL"] = slug_uri
 
         if not slots:
+            logging.info("Setting default slots for {}".format(app))
             slots = self.config.default_slots_per_instance
         if len(self.get_instances(node_filter=node)) + slots > self.config.slots_per_node:
             raise exceptions.NodeOutOfCapacityException()
@@ -116,13 +125,16 @@ class Connection(object):
                                                      name=app + "_" + str(uuid.uuid4()),
                                                      cpu_shares=slots,
                                                      mem_limit=self.config.slot_memory_mb * slots * 1024 * 1024)
+        logging.debug("Created container for {} on {}".format(app, node))
 
         # start the container
         node_connection.start(container["Id"], port_bindings={8080: None})
+        logging.debug("Started container for {} on {}".format(app, node))
 
         # inspect the container
         # it is important to inspect it *after* starting as before that it doesn't have port info in it)
         container_inspected = node_connection.inspect_container(container["Id"])
+        logging.info("Finished starting container for app {} on {}".format(app, node))
 
         # and return the container converted to an Instance
         return self.__get_instance(node, container_inspected)
@@ -134,12 +146,15 @@ class Connection(object):
             if instance["id"] == instance_id:
                 docker_hostname = instance["node"]
                 docker_container_id = instance_id
-
+                logging.debug("Stopping container {} on {}".format(docker_container_id, docker_hostname))
                 self.node_connections[docker_hostname].stop(docker_container_id)
+                logging.info("Stopped container {} on {}".format(docker_container_id, docker_hostname))
 
                 try:
                     self.node_connections[docker_hostname].remove_container(docker_container_id, force=True)
+                    logging.debug("Removed container {} on {}".format(docker_container_id, docker_hostname))
                 except:
+                    logging.warn("Failed to remove container {} on {}".format(docker_container_id, docker_hostname))
                     pass  # we do not care if removing the container failed
 
                 return True
@@ -153,7 +168,7 @@ class Connection(object):
             base_url = "{}://{}".format(address.scheme, address.hostname)
 
         c = docker.Client(base_url=base_url, version="1.12", timeout=self.config.docker_timeout)
-
+        logging.debug("Docker client created for {}".format(address.hostname))
         # This is a hack to allow logs to work thru nginx.
         # It will break bidirectional traffic on .attach but fortunately we don't (yet) use it.
         def __hacked_multiplexed_socket_stream_helper(response):
@@ -180,13 +195,15 @@ class Connection(object):
 
     def __get_instance(self, node, container):
         app = container["Name"][1:].split("_")[0]
-
+        logging.debug("App name is {}".format(app))
         environment = {}
         slug_uri = None
         for env_item in container["Config"]["Env"]:
             env_item_key, env_item_value = env_item.split("=", 1)
             if env_item_key not in ['HOME', 'PATH', 'SLUG_URL', 'PORT']:
                 environment[env_item_key] = env_item_value
+            else:
+                logging.debug("Skipping {} from environment".format(env_item_key))
             if env_item_key == 'SLUG_URL':
                 slug_uri = env_item_value
 
