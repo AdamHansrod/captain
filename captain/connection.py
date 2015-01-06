@@ -104,7 +104,7 @@ class Connection(object):
                     logging.debug("Got details for {}".format(node))
         return nodes
 
-    def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None):
+    def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None, hostname=None):
         environment["PORT"] = "8080"
         environment["SLUG_URL"] = slug_uri
 
@@ -122,6 +122,7 @@ class Connection(object):
                                                      ports=[8080],
                                                      environment=environment,
                                                      detach=True,
+                                                     hostname=hostname,
                                                      name=app + "_" + str(uuid.uuid4()),
                                                      cpu_shares=slots,
                                                      mem_limit=self.config.slot_memory_mb * slots * 1024 * 1024)
