@@ -108,6 +108,7 @@ class TestConnection(unittest.TestCase):
                                                               detach=True,
                                                               name="paye_SOME-UUID",
                                                               cpu_shares=2,
+                                                              hostname=None,
                                                               mem_limit=256 * 1024 * 1024,
                                                               )
 
@@ -129,6 +130,7 @@ class TestConnection(unittest.TestCase):
                                                               name="paye_SOME-UUID",
                                                               cpu_shares=2,
                                                               mem_limit=256 * 1024 * 1024,
+                                                              hostname=None,
                                                               )
 
         mock_client_node1.start.assert_called_with("eba8bea2600029", port_bindings={8080: None})
