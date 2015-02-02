@@ -11,6 +11,7 @@ from backports.functools_lru_cache import lru_cache as lru_cache
 
 lru_cache_size = 1024
 
+
 class Connection(object):
     def __init__(self, config, verify=False):
         self.config = config
@@ -70,15 +71,15 @@ class Connection(object):
             if node_filter and node != node_filter:
                 logging.debug("Filtering node {}".format(node))
                 continue
-            filtered_nodes[node]=node_conn
+            filtered_nodes[node] = node_conn
         with futures.ThreadPoolExecutor(max_workers=8) as executor:
-            future_to_instances = dict((executor.submit(self.get_node_instances, node) , node ) for node, node_conn in filtered_nodes.items())
+            future_to_instances = dict((executor.submit(self.get_node_instances, node), node) for node, node_conn in filtered_nodes.items())
             for future in futures.as_completed(future_to_instances):
                 node = future_to_instances[future]
                 if future.exception() is not None:
                     logging.error("Getting instances from {} generated an exception: {}".format(node, type(future.exception())))
                 else:
-                    instances =  instances + future.result()
+                    instances = instances + future.result()
                     logging.debug("Get instances for {} found {}".format(node, len(future.result())))
         return instances
 
@@ -108,13 +109,13 @@ class Connection(object):
     def get_nodes(self):
         nodes = []
         with futures.ThreadPoolExecutor(max_workers=8) as executor:
-            future_to_nodes = dict((executor.submit(self.get_node, node) , node ) for node in self.node_connections.keys() )
+            future_to_nodes = dict((executor.submit(self.get_node, node), node) for node in self.node_connections.keys())
             for future in futures.as_completed(future_to_nodes):
                 node = future_to_nodes[future]
                 if future.exception() is not None:
                     logging.error("Getting details for {} generated an exception: {}".format(node, type(future.exception())))
                 else:
-                    nodes =  nodes + [future.result()]
+                    nodes = nodes + [future.result()]
                     logging.debug("Got details for {}".format(node))
         return nodes
 
@@ -184,6 +185,7 @@ class Connection(object):
 
         c = docker.Client(base_url=base_url, version="1.12", timeout=self.config.docker_timeout)
         logging.debug("Docker client created for {}".format(address.hostname))
+
         # This is a hack to allow logs to work thru nginx.
         # It will break bidirectional traffic on .attach but fortunately we don't (yet) use it.
         def __hacked_multiplexed_socket_stream_helper(response):
