@@ -7,7 +7,9 @@ from requests.exceptions import ConnectionError, Timeout
 import struct
 import logging
 from concurrent import futures
+from backports.functools_lru_cache import lru_cache as lru_cache
 
+lru_cache_size = 1024
 
 class Connection(object):
     def __init__(self, config, verify=False):
@@ -28,16 +30,28 @@ class Connection(object):
             if node is not None:
                 self.node_connections[node].close()
 
-    def get_node_instances(self, node, node_conn):
+    @lru_cache(maxsize=lru_cache_size)
+    def _get_lru_instance_details(self, node, container_id, container_status):
+        logging.info("Cache miss on node {} container {}".format(node, container_id))
+        node_conn = self.node_connections[node]
+        node_container = node_conn.inspect_container(container_id)
+        return node_container
+
+    def get_node_instances(self, node):
+        node_conn = self.node_connections[node]
         node_instances = []
         node_containers = node_conn.containers(
             quiet=False, all=True, trunc=False, latest=False,
             since=None, before=None, limit=-1)
         logging.debug("{} has {} containers".format(node, len(node_containers)))
         for container in node_containers:
+            # Grab the first part of State to give uniqueness of container and state for the lru_cache
+            full_container_status = container["Status"]
+            container_status = full_container_status.split()[0] if full_container_status else full_container_status
+
             if container["Status"].startswith("Exited"):
                 logging.debug("Found exited container on {}".format(node))
-                node_container = node_conn.inspect_container(container["Id"])
+                node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 formatted_exit_time = node_container["State"]['FinishedAt']
                 exit_time = datetime.datetime.strptime(formatted_exit_time.split('.')[0], '%Y-%m-%dT%H:%M:%S')
                 if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
@@ -45,7 +59,7 @@ class Connection(object):
                     node_conn.remove_container(container["Id"])
                     logging.info("Removed {} from {}".format(container["Id"], node))
             elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
-                node_container = node_conn.inspect_container(container["Id"])
+                node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 node_instances.append(self.__get_instance(node, node_container))
         return node_instances
 
@@ -58,7 +72,7 @@ class Connection(object):
                 continue
             filtered_nodes[node]=node_conn
         with futures.ThreadPoolExecutor(max_workers=8) as executor:
-            future_to_instances = dict((executor.submit(self.get_node_instances, node, node_conn) , node ) for node, node_conn in filtered_nodes.items() )
+            future_to_instances = dict((executor.submit(self.get_node_instances, node) , node ) for node, node_conn in filtered_nodes.items())
             for future in futures.as_completed(future_to_instances):
                 node = future_to_instances[future]
                 if future.exception() is not None:
