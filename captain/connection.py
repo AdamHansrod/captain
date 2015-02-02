@@ -50,7 +50,7 @@ class Connection(object):
             full_container_status = container["Status"]
             container_status = full_container_status.split()[0] if full_container_status else full_container_status
 
-            if container["Status"].startswith("Exited"):
+            if not container["Status"].startswith("Up "):
                 logging.debug("Found exited container on {}".format(node))
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 formatted_exit_time = node_container["State"]['FinishedAt']
