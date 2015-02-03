@@ -1,5 +1,5 @@
 import unittest
-from mock import patch, MagicMock
+from mock import patch, MagicMock, call
 from captain.connection import Connection
 from captain import exceptions
 from captain.tests.util_mock import ClientMock
@@ -26,7 +26,8 @@ class TestConnection(unittest.TestCase):
 
         # when
         connection = Connection(self.config)
-        instances = connection.get_instances()
+        #   get_instances is async and order isn't guaranteed, sort it for the tests
+        instances = sorted(connection.get_instances(), key=lambda i: i["id"])
 
         # then
         self.assertEqual(3, instances.__len__())
@@ -41,7 +42,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual("-Dapplication.secret=H7dVw$PlJiD)^U,oa4TA1pa]pT:4ETLqbL&2P=n6T~p,A*}^.Y46@PQOV~9(B09Hc]t7-hsf~&@w=zH -Dapplication.log=INFO -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080 -Dgovuk-tax.Prod.google-analytics.token=UA-00000000-0 -Drun.mode=Prod -Dsession.secure=true -Dsession.httpOnly=true -Dcookie.encryption.key=fqpLDZ4smuDsekHkrEBlCA==", instance1["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance1["environment"]["JAVA_OPTS"])
 
-        instance2 = instances[1]
+        instance2 = instances[2]
         self.assertEqual("eba8bea2600029", instance2["id"])
         self.assertEqual("paye", instance2["app"])
         self.assertEqual("node-1", instance2["node"])
@@ -51,7 +52,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", instance2["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance2["environment"]["JAVA_OPTS"])
 
-        instance3 = instances[2]
+        instance3 = instances[1]
         self.assertEqual("80be2a9e62ba00", instance3["id"])
         self.assertEqual("paye", instance3["app"])
         self.assertEqual("node-2", instance3["node"])
@@ -60,15 +61,12 @@ class TestConnection(unittest.TestCase):
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", instance3["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance3["environment"]["JAVA_OPTS"])
         # Two containers stopped, one of them for longer than docker_gc_grace_period
-        docker_conn1.remove_container.assert_called_with("381587e2978216")
-        self.assertEqual(docker_conn1.remove_container.call_count, 1)
+        docker_conn1.remove_container.assert_has_calls([call("381587e2978216"), call("3815178hgdasf6")])
+        self.assertEqual(docker_conn1.remove_container.call_count, 2)
         self.assertEqual(docker_conn2.remove_container.call_count, 0)
         # jh23899fg00029 doesn't have captain ports defined and should be ignored.
         self.assertFalse([i for i in instances if i["id"] == "jh23899fg00029"])
 
-        def thing():
-            raise ConnectionError()
-        self.assertRaises(ConnectionError, thing)
         self.assertRaises(ConnectionError, docker_conn3.containers)
 
     @patch('docker.Client')
