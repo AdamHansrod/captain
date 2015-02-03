@@ -262,12 +262,12 @@ class ClientMock():
             u'ProcessLabel': u'',
             u'ResolvConfPath': u'/etc/resolv.conf',
             u'State': {u'ExitCode': 127,
-                       # This date format tests the fact that datetime wants microseconds but docker returns a higher granularity.
-                       u'FinishedAt': "{}1234Z".format((datetime.datetime.now() - datetime.timedelta(days=1, minutes=10)).strftime('%Y-%m-%dT%H:%M:%S.%f')),
+                       # Weird date that docker sometimes returns in containers with no Status
+                       u'FinishedAt': u'0001-01-01T00:00:00Z',
                        u'Paused': False,
                        u'Pid': 35327,
                        u'Running': False,
-                       u'StartedAt': u'2014-09-02T08:49:57.906207449Z'},
+                       u'StartedAt': u'0001-01-01T00:00:00Z'},
             u'Volumes': {},
             u'VolumesRW': {}},
         "656ca7c307d178": {

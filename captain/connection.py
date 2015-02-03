@@ -54,7 +54,7 @@ class Connection(object):
                 logging.debug("Found exited container on {}".format(node))
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 formatted_exit_time = node_container["State"]['FinishedAt']
-                exit_time = datetime.datetime.strptime(formatted_exit_time.split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                exit_time = datetime.datetime.strptime(formatted_exit_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
                 if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
                     logging.info("Attempting to remove {} from {}".format(container["Id"], node))
                     node_conn.remove_container(container["Id"])
