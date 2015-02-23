@@ -56,7 +56,7 @@ class Connection(object):
                 formatted_exit_time = node_container["State"]['FinishedAt']
                 exit_time = datetime.datetime.strptime(formatted_exit_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
                 if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
-                    logging.info("Attempting to remove {} from {}".format(container["Id"], node))
+                    logging.warn("Will recycle container {} on {} with exit time at {}".format(container["Id"], node, formatted_exit_time))
                     node_conn.remove_container(container["Id"])
                     logging.info("Removed {} from {}".format(container["Id"], node))
             elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
