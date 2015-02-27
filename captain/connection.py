@@ -55,7 +55,13 @@ class Connection(object):
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 formatted_exit_time = node_container["State"]['FinishedAt']
                 exit_time = datetime.datetime.strptime(formatted_exit_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
-                if (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
+                # this is a workaround for docker's annoying 'feature'
+                if formatted_exit_time == '0001-01-01T00:00:00Z':
+                    logging.warn("Detected container {} with zero exit time on {}. Will attempt to start and kill.".format(container["Id"], node))
+                    node_conn.start_container(container["Id"])
+                    node_conn.kill_container(container["Id"])
+                    logging.warn("Container {} exit time successfully reset.".format(container["Id"]))
+                elif (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
                     logging.warn("Will recycle container {} on {} with exit time at {}".format(container["Id"], node, formatted_exit_time))
                     node_conn.remove_container(container["Id"])
                     logging.info("Removed {} from {}".format(container["Id"], node))
