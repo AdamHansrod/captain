@@ -60,9 +60,14 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(2, instance3["environment"].__len__())
         self.assertEqual("-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080", instance3["environment"]["HMRC_CONFIG"])
         self.assertEqual("-Xmx256m -Xms256m", instance3["environment"]["JAVA_OPTS"])
-        # Two containers stopped, one of them for longer than docker_gc_grace_period
-        docker_conn1.remove_container.assert_has_calls([call("381587e2978216"), call("3815178hgdasf6")])
-        self.assertEqual(docker_conn1.remove_container.call_count, 2)
+        # One container stopped
+        docker_conn1.remove_container.assert_has_calls([call("381587e2978216")])
+        # One container with FinishedAt time of 0 started and killed
+        docker_conn1.start.assert_has_calls([call("3815178hgdasf6")])
+        docker_conn1.kill.assert_has_calls([call("3815178hgdasf6")])
+        self.assertEqual(docker_conn1.remove_container.call_count, 1)
+        self.assertEqual(docker_conn1.start.call_count, 1)
+        self.assertEqual(docker_conn1.kill.call_count, 1)
         self.assertEqual(docker_conn2.remove_container.call_count, 0)
         # jh23899fg00029 doesn't have captain ports defined and should be ignored.
         self.assertFalse([i for i in instances if i["id"] == "jh23899fg00029"])
