@@ -237,7 +237,7 @@ class Connection(object):
                     app=app,
                     slug_uri=slug_uri,
                     node=node,
-                    port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"]),
+                    port=int(container["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"]),
                     environment=environment,
                     slots=container["Config"]["CpuShares"])
 
