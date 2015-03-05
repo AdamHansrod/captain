@@ -233,19 +233,11 @@ class Connection(object):
         # Docker breaks stuff, when talking to > 1.1.1 this might be the place to find the port on stopped containers.
         # self.port = int(inspection_details["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
 
-        try:
-            port=int(container["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"])
-        except:
-            try:
-                port=int(container["HostConfig"]["PortBindings"]["8080/tcp"][0]["HostPort"])
-            except:
-                port = 0
-
         return dict(id=container["Id"],
                     app=app,
                     slug_uri=slug_uri,
                     node=node,
-                    port=port,
+                    port=int(container["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"]),
                     environment=environment,
                     slots=container["Config"]["CpuShares"])
 
