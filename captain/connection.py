@@ -54,14 +54,20 @@ class Connection(object):
                 logging.debug("Found exited container on {}".format(node))
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 formatted_exit_time = node_container["State"]['FinishedAt']
+                formatted_start_time = node_container["State"]['StartedAt']
                 exit_time = datetime.datetime.strptime(formatted_exit_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
-                # this is a workaround for docker's annoying 'feature'
-                if formatted_exit_time == '0001-01-01T00:00:00Z':
+                start_time = datetime.datetime.strptime(formatted_start_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                # If docker is restarted it looses track of start and exit times
+                # When a new container is started it does not have an exit time
+                # This check ensures that new containers are left to start up but dead containers after a docker restart are started and immediately killed,
+                #     allowing logs to be retrieved but still enforcing GC based on a stop time of now.
+                if formatted_start_time == formatted_exit_time == '0001-01-01T00:00:00Z':
                     logging.warn("Detected container {} with zero exit time on {}. Will attempt to start and kill.".format(container["Id"], node))
                     node_conn.start(container["Id"])
                     node_conn.kill(container["Id"])
                     logging.warn("Container {} exit time successfully reset.".format(container["Id"]))
-                elif (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
+                elif (datetime.datetime.now() - start_time).total_seconds() > self.config.docker_gc_grace_period and \
+                     (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
                     logging.warn("Will recycle container {} on {} with exit time at {}".format(container["Id"], node, formatted_exit_time))
                     node_conn.remove_container(container["Id"])
                     logging.warn("Removed {} from {}".format(container["Id"], node))
