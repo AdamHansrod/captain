@@ -62,13 +62,10 @@ class TestConnection(unittest.TestCase):
         self.assertEqual("-Xmx256m -Xms256m", instance3["environment"]["JAVA_OPTS"])
         # One container stopped
         docker_conn1.remove_container.assert_has_calls([call("381587e2978216")])
-        # One container with FinishedAt time of 0 started and killed
-        docker_conn1.start.assert_has_calls([call("3815178hgdasf6")])
-        docker_conn1.kill.assert_has_calls([call("3815178hgdasf6")])
-        self.assertEqual(docker_conn1.remove_container.call_count, 1)
-        self.assertEqual(docker_conn1.start.call_count, 1)
-        self.assertEqual(docker_conn1.kill.call_count, 1)
-        self.assertEqual(docker_conn2.remove_container.call_count, 0)
+        # One container with FinishedAt time of 0 removed
+        docker_conn1.remove_container.assert_has_calls([call("3815178hgdasf6")])
+        self.assertEqual(docker_conn1.remove_container.call_count, 2)
+        self.assertEqual(docker_conn2.remove_container.call_count, 1)
         # jh23899fg00029 doesn't have captain ports defined and should be ignored.
         self.assertFalse([i for i in instances if i["id"] == "jh23899fg00029"])
 
@@ -254,3 +251,21 @@ class TestConnection(unittest.TestCase):
              "slots": {"free": 6, "used": 4, "total": 10}, "state": "healthy"},
             nodes
         )
+
+    @patch('docker.Client')
+    def test_gc(self, docker_client):
+        # given
+        (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(self.config)
+        #   get_instances is async and order isn't guaranteed, sort it for the tests
+        instances = sorted(connection.get_instances(), key=lambda i: i["id"])
+        #connection.get_instances("node-2")
+
+        # then
+        # 61c2695fd82a is a freshly created but not yet started container and so shouldn't be gc'd
+        self.assertNotIn(call("61c2695fd82a"), docker_conn2.start.mock_calls)
+
+        # 61c2695fd82b is an old container with epoch start and exit times and should be gc'd
+        docker_conn2.remove_container.assert_has_calls([call("61c2695fd82b")])
