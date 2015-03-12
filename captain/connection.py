@@ -2,7 +2,9 @@ import uuid
 import docker
 from urlparse import urlparse
 from captain import exceptions
-import datetime
+# futures and datetime together do weird things
+#  https://mail.python.org/pipermail/python-list/2012-December/650103.html
+import datetime, _strptime
 from requests.exceptions import ConnectionError, Timeout
 import struct
 import logging
@@ -53,25 +55,19 @@ class Connection(object):
             if not container["Status"].startswith("Up "):
                 logging.debug("Found exited container on {}".format(node))
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status)
+
+                formatted_create_time = node_container["Created"]
+                created_time = datetime.datetime.strptime(formatted_create_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
                 formatted_exit_time = node_container["State"]['FinishedAt']
-                formatted_start_time = node_container["State"]['StartedAt']
                 exit_time = datetime.datetime.strptime(formatted_exit_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
-                start_time = datetime.datetime.strptime(formatted_start_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
-                # If docker is restarted it looses track of start and exit times
-                # When a new container is started it does not have an exit time
-                # This check ensures that new containers are left to start up but dead containers after a docker restart are started and immediately killed,
-                #     allowing logs to be retrieved but still enforcing GC based on a stop time of now.
-                if formatted_start_time == formatted_exit_time == '0001-01-01T00:00:00Z':
-                    logging.warn("Detected container {} with zero exit time on {}. Will attempt to start and kill.".format(container["Id"], node))
-                    node_conn.start(container["Id"])
-                    node_conn.kill(container["Id"])
-                    logging.warn("Container {} exit time successfully reset.".format(container["Id"]))
-                elif (datetime.datetime.now() - start_time).total_seconds() > self.config.docker_gc_grace_period and \
-                     (datetime.datetime.now() - exit_time).total_seconds() > self.config.docker_gc_grace_period:
-                    logging.warn("Will recycle container {} on {} with exit time at {}".format(container["Id"], node, formatted_exit_time))
+                if (datetime.datetime.now() - created_time).total_seconds() < self.config.docker_gc_grace_period or \
+                   (datetime.datetime.now() - exit_time).total_seconds() < self.config.docker_gc_grace_period:
+                    logging.debug("Exited container {} on {} not older than gc period, ignoring".format(container["Id"], node))
+                else:
                     node_conn.remove_container(container["Id"])
-                    logging.warn("Removed {} from {}".format(container["Id"], node))
-            elif len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
+                    logging.warn("Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time))
+                continue
+            elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 node_instances.append(self.__get_instance(node, node_container))
         return node_instances
@@ -84,12 +80,17 @@ class Connection(object):
                 logging.debug("Filtering node {}".format(node))
                 continue
             filtered_nodes[node] = node_conn
+        #print [ node for node in filtered_nodes.keys() ]
+        #print [ instance for node in [ "node-1", "node-2" ] for instance in self.get_node_instances(node) ]
+        ##print self.get_node_instances("node-2")
+        #instances = [ instance for node in [ "node-1", "node-2" ] for instance in self.get_node_instances(node) ]
         with futures.ThreadPoolExecutor(max_workers=8) as executor:
             future_to_instances = dict((executor.submit(self.get_node_instances, node), node) for node, node_conn in filtered_nodes.items())
             for future in futures.as_completed(future_to_instances):
                 node = future_to_instances[future]
                 if future.exception() is not None:
                     logging.error("Getting instances from {} generated an exception: {}".format(node, type(future.exception())))
+                    #raise future.exception()
                 else:
                     instances = instances + future.result()
                     logging.debug("Get instances for {} found {}".format(node, len(future.result())))
