@@ -66,7 +66,6 @@ class Connection(object):
                 else:
                     node_conn.remove_container(container["Id"])
                     logging.warn("Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time))
-                continue
             elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status)
                 node_instances.append(self.__get_instance(node, node_container))
@@ -80,17 +79,12 @@ class Connection(object):
                 logging.debug("Filtering node {}".format(node))
                 continue
             filtered_nodes[node] = node_conn
-        #print [ node for node in filtered_nodes.keys() ]
-        #print [ instance for node in [ "node-1", "node-2" ] for instance in self.get_node_instances(node) ]
-        ##print self.get_node_instances("node-2")
-        #instances = [ instance for node in [ "node-1", "node-2" ] for instance in self.get_node_instances(node) ]
         with futures.ThreadPoolExecutor(max_workers=8) as executor:
             future_to_instances = dict((executor.submit(self.get_node_instances, node), node) for node, node_conn in filtered_nodes.items())
             for future in futures.as_completed(future_to_instances):
                 node = future_to_instances[future]
                 if future.exception() is not None:
                     logging.error("Getting instances from {} generated an exception: {}".format(node, type(future.exception())))
-                    #raise future.exception()
                 else:
                     instances = instances + future.result()
                     logging.debug("Get instances for {} found {}".format(node, len(future.result())))
