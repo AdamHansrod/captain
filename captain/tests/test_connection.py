@@ -259,9 +259,8 @@ class TestConnection(unittest.TestCase):
 
         # when
         connection = Connection(self.config)
-        #   get_instances is async and order isn't guaranteed, sort it for the tests
-        instances = sorted(connection.get_instances(), key=lambda i: i["id"])
-        #connection.get_instances("node-2")
+        # trigger gc
+        connection.get_instances()
 
         # then
         # 61c2695fd82a is a freshly created but not yet started container and so shouldn't be gc'd
