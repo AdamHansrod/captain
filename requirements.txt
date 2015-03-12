@@ -5,7 +5,6 @@ MarkupSafe==0.23
 Werkzeug==0.9.6
 aniso8601==0.83
 argparse==1.2.1
-coverage==3.7.1
 docker-py==0.4.0
 futures==2.2.0
 gevent==1.0.1
@@ -13,7 +12,6 @@ greenlet==0.4.4
 gunicorn==19.1.1
 itsdangerous==0.24
 logstash-formatter==0.5.8
-mock==1.0.1
 pytz==2014.4
 requests==2.2.1
 six==1.7.3
