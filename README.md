@@ -1,8 +1,6 @@
 Captain
 =======
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/hmrc/captain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-[![Build Status](https://travis-ci.org/hmrc/captain.svg?branch=master)](https://travis-ci.org/hmrc/captain)
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/hmrc/captain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/hmrc/captain.svg?branch=master)](https://travis-ci.org/hmrc/captain)
 
 ## What is it?
 
@@ -120,3 +118,7 @@ $ nosetests --with-xunit --xunit-file=target/nosetests.xml --with-xcover \
     --xcoverage-file=target/coverage/coverage.xml --cover-package=captain \
     --cover-erase --cover-html-dir=target/coverage --cover-html
 ```
+
+## License ##
+ 
+This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
