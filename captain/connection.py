@@ -34,7 +34,7 @@ class Connection(object):
                 self.node_connections[node].close()
 
     @lru_cache(maxsize=lru_cache_size)
-    def _get_lru_instance_details(self, node, container_id, container_status):
+    def _get_lru_instance_details(self, node, container_id, container_status, public_port):
         logging.info("Cache miss on node {} container {}".format(node, container_id))
         node_conn = self.node_connections[node]
         node_container = node_conn.inspect_container(container_id)
@@ -51,10 +51,11 @@ class Connection(object):
             # Grab the first part of State to give uniqueness of container and state for the lru_cache
             full_container_status = container["Status"]
             container_status = full_container_status.split()[0] if full_container_status else full_container_status
+            public_port = container["Ports"][0]["PublicPort"]
 
             if not container["Status"].startswith("Up "):
                 logging.debug("Found exited container on {}".format(node))
-                node_container = self._get_lru_instance_details(node, container["Id"], container_status)
+                node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
 
                 formatted_create_time = node_container["Created"]
                 created_time = datetime.datetime.strptime(formatted_create_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
@@ -67,7 +68,7 @@ class Connection(object):
                     node_conn.remove_container(container["Id"])
                     logging.warn("Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time))
             elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
-                node_container = self._get_lru_instance_details(node, container["Id"], container_status)
+                node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
                 node_instances.append(self.__get_instance(node, node_container))
         return node_instances
 
