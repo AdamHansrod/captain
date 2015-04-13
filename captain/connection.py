@@ -51,11 +51,10 @@ class Connection(object):
             # Grab the first part of State to give uniqueness of container and state for the lru_cache
             full_container_status = container["Status"]
             container_status = full_container_status.split()[0] if full_container_status else full_container_status
-            public_port = container["Ports"][0]["PublicPort"]
 
             if not container["Status"].startswith("Up "):
                 logging.debug("Found exited container on {}".format(node))
-                node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
+                node_container = self._get_lru_instance_details(node, container["Id"], container_status, 0)
 
                 formatted_create_time = node_container["Created"]
                 created_time = datetime.datetime.strptime(formatted_create_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
@@ -68,6 +67,7 @@ class Connection(object):
                     node_conn.remove_container(container["Id"])
                     logging.warn("Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time))
             elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
+                public_port = container["Ports"][0]["PublicPort"]
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
                 node_instances.append(self.__get_instance(node, node_container))
         return node_instances
