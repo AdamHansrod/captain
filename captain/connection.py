@@ -241,7 +241,8 @@ class Connection(object):
                     node=node,
                     port=int(container["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"]),
                     environment=environment,
-                    slots=container["Config"]["CpuShares"])
+                    slots=container["Config"]["CpuShares"],
+                    hostname=container["Config"]["Hostname"])
 
     def get_logs(self, instance_id, follow=False):
         try:
