@@ -24,6 +24,16 @@ def get_captain_conn():
     return persistent_captain_conn
 
 
+class RestCache(restful.Resource):
+    def get(self):
+        captain_conn = get_captain_conn()
+        return captain_conn._get_lru_instance_details.cache_info()
+
+    def delete(self):
+        captain_conn = get_captain_conn()
+        return captain_conn._get_lru_instance_details.cache_clear()
+
+
 class RestInstances(restful.Resource):
     def get(self):
         captain_conn = get_captain_conn()
@@ -113,6 +123,7 @@ class RestNode(restful.Resource):
 
 api.add_resource(RestNodes, '/nodes/')
 api.add_resource(RestNode, '/nodes/<string:node_id>')
+api.add_resource(RestCache, '/cache')
 
 if __name__ == '__main__':
     app.run(debug=True, port=1234)
