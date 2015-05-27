@@ -27,7 +27,7 @@ def get_captain_conn():
 class RestCache(restful.Resource):
     def get(self):
         captain_conn = get_captain_conn()
-        return captain_conn._get_lru_instance_details.cache_info()
+        return captain_conn._get_lru_instance_details.cache_info()._asdict()
 
     def delete(self):
         captain_conn = get_captain_conn()
