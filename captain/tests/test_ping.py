@@ -14,4 +14,4 @@ def test_get_ping():
     It should return a 200
     """
     test_response = test_app.get('/ping/ping')
-    eq_(test_response.status_code, 200)
+    eq_(test_response.status_code, 204)
