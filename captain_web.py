@@ -98,7 +98,7 @@ class RestInstanceLogs(restful.Resource):
 
 class RestPing(restful.Resource):
     def get(self):
-        Response("{}", mimetype='application/json')
+        return ({}, 204)
 
 
 api.add_resource(RestInstances, '/instances/')
