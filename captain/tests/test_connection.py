@@ -20,6 +20,21 @@ class TestConnection(unittest.TestCase):
         self.config.default_slots_per_instance = 2
 
     @patch('docker.Client')
+    def test_returns_summary_of_instances(self, docker_client):
+        # given
+        (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
+
+        # when
+        connection = Connection(self.config)
+        summary = connection.get_instance_summary()
+
+        # then
+        print summary
+        self.assertEqual(3, summary['total_instances'])
+        self.assertEqual(1, summary['apps']['ers-checking-frontend-27'])
+        self.assertEqual(2, summary['apps']['paye'])
+
+    @patch('docker.Client')
     def test_returns_all_instances_with_ports(self, docker_client):
         # given
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)

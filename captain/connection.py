@@ -10,6 +10,7 @@ import struct
 import logging
 from concurrent import futures
 from backports.functools_lru_cache import lru_cache as lru_cache
+from collections import Counter
 
 lru_cache_size = 1024
 
@@ -126,6 +127,19 @@ class Connection(object):
                     nodes = nodes + [future.result()]
                     logging.debug("Got details for {}".format(node))
         return nodes
+
+    def get_instance_summary(self):
+        summary = {"total_instances": 0}
+        apps = Counter()
+        logging.debug("Getting instances to generate summary")
+        instances = self.get_instances()
+        for instance in instances:
+            summary["total_instances"] += 1
+            apps[instance["app"]] += 1
+            logging.debug("Incrementing {} to {}".format(instance["app"], apps[instance["app"]]))
+        summary.update({"apps": dict(apps)})
+        logging.debug("Returning summary {}".format(summary))
+        return summary
 
     def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None, hostname=None):
         environment["PORT"] = "8080"
