@@ -111,7 +111,7 @@ api.add_resource(RestInstances, '/instances/')
 api.add_resource(RestInstance, '/instances/<string:instance_id>')
 api.add_resource(RestInstanceLogs, '/instances/<string:instance_id>/logs')
 api.add_resource(RestPing, '/ping/ping')
-api.add_resource(RestInstancesSummary, '/instances/summary/')
+api.add_resource(RestInstancesSummary, '/instances_summary/')
 
 
 class RestNodes(restful.Resource):
