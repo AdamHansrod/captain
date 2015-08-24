@@ -75,7 +75,7 @@ class RestInstance(restful.Resource):
     def delete(self, instance_id):
         logger.debug(dict(message='Stopping instance {}'.format(instance_id)))
         if instance_id.startswith(socket.gethostname()):
-            logger.warn(dict(message='Sneding redirect as a captain instance has been asked to stop itself {}'.format(instance_id)))
+            logger.warn(dict(message='Sending redirect as a captain instance has been asked to stop itself {}'.format(instance_id)))
             # My hostname is the short container ID.
             # I've just been asked to kill myself.
             #   I'll send a redirect to try again instead of committing suicide.
