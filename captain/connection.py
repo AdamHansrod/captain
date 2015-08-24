@@ -53,13 +53,16 @@ class Connection(object):
             quiet=False, all=True, trunc=False, latest=False,
             since=None, before=None, limit=-1)
         logger.debug(dict(message="{} has {} containers".format(node, len(node_containers))))
+        exited_container_count = 0
+        deleted_container_count = 0
         for container in node_containers:
             # Grab the first part of State to give uniqueness of container and state for the lru_cache
             full_container_status = container["Status"]
             container_status = full_container_status.split()[0] if full_container_status else full_container_status
 
             if not container["Status"].startswith("Up "):
-                logger.info(dict(message="Found exited container on {}".format(node)))
+                exited_container_count += 1
+                logger.debug(dict(message="Found exited container on {}".format(node)))
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status, 0)
 
                 formatted_create_time = node_container["Created"]
@@ -71,11 +74,13 @@ class Connection(object):
                     logger.debug(dict(message="Exited container {} on {} not older than gc period, ignoring".format(container["Id"], node)))
                 else:
                     node_conn.remove_container(container["Id"])
+                    deleted_container_count += 1
                     logger.warn(dict(message="Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time)))
             elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                 public_port = container["Ports"][0]["PublicPort"]
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
                 node_instances.append(self.__get_instance(node, node_container))
+        logger.debug('Found {} exited containers, {} were deleted'.format(exited_container_count, deleted_container_count))
         return node_instances
 
     def get_instances(self, node_filter=None):
