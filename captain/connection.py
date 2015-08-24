@@ -8,11 +8,15 @@ import datetime, _strptime
 from requests.exceptions import ConnectionError, Timeout
 import struct
 import logging
+import logging.config
 from concurrent import futures
 from backports.functools_lru_cache import lru_cache as lru_cache
 from collections import Counter
 
 lru_cache_size = 1024
+
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger('connection')
 
 
 class Connection(object):
@@ -20,23 +24,24 @@ class Connection(object):
         self.config = config
 
         self.node_connections = {}
-        logging.debug("Setting up docker clients for {} configured nodes".format(len(config.docker_nodes)))
+        logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(config.docker_nodes))))
         for node in config.docker_nodes:
             address = urlparse(node)
             docker_conn = self.__get_connection(address)
             docker_conn.verify = verify
             docker_conn.auth = (address.username, address.password)
             self.node_connections[address.hostname] = docker_conn
+        logger.debug(dict(message='Nodes configured: {}'.format(self.node_connections)))
 
     def close(self):
         for node in self.node_connections:
-            logging.debug("Closing connection to {}".format(node))
+            logger.debug(dict(message="Closing connection to {}".format(node)))
             if node is not None:
                 self.node_connections[node].close()
 
     @lru_cache(maxsize=lru_cache_size)
     def _get_lru_instance_details(self, node, container_id, container_status, public_port):
-        logging.info("Cache miss on node {} container {}".format(node, container_id))
+        logger.info(dict(message="Cache miss on node {} container {}".format(node, container_id)))
         node_conn = self.node_connections[node]
         node_container = node_conn.inspect_container(container_id)
         return node_container
@@ -47,14 +52,14 @@ class Connection(object):
         node_containers = node_conn.containers(
             quiet=False, all=True, trunc=False, latest=False,
             since=None, before=None, limit=-1)
-        logging.debug("{} has {} containers".format(node, len(node_containers)))
+        logger.debug(dict(message="{} has {} containers".format(node, len(node_containers))))
         for container in node_containers:
             # Grab the first part of State to give uniqueness of container and state for the lru_cache
             full_container_status = container["Status"]
             container_status = full_container_status.split()[0] if full_container_status else full_container_status
 
             if not container["Status"].startswith("Up "):
-                logging.debug("Found exited container on {}".format(node))
+                logger.info(dict(message="Found exited container on {}".format(node)))
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status, 0)
 
                 formatted_create_time = node_container["Created"]
@@ -63,10 +68,10 @@ class Connection(object):
                 exit_time = datetime.datetime.strptime(formatted_exit_time.rstrip("Z").split('.')[0], '%Y-%m-%dT%H:%M:%S')
                 if (datetime.datetime.now() - created_time).total_seconds() < self.config.docker_gc_grace_period or \
                    (datetime.datetime.now() - exit_time).total_seconds() < self.config.docker_gc_grace_period:
-                    logging.debug("Exited container {} on {} not older than gc period, ignoring".format(container["Id"], node))
+                    logger.debug(dict(message="Exited container {} on {} not older than gc period, ignoring".format(container["Id"], node)))
                 else:
                     node_conn.remove_container(container["Id"])
-                    logging.warn("Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time))
+                    logger.warn(dict(message="Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time)))
             elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                 public_port = container["Ports"][0]["PublicPort"]
                 node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
@@ -78,7 +83,7 @@ class Connection(object):
         filtered_nodes = {}
         for node, node_conn in self.node_connections.items():
             if node_filter and node != node_filter:
-                logging.debug("Filtering node {}".format(node))
+                logger.debug(dict(message="Filtering node {}".format(node)))
                 continue
             filtered_nodes[node] = node_conn
         with futures.ThreadPoolExecutor(max_workers=8) as executor:
@@ -86,20 +91,20 @@ class Connection(object):
             for future in futures.as_completed(future_to_instances):
                 node = future_to_instances[future]
                 if future.exception() is not None:
-                    logging.error("Getting instances from {} generated an exception: {}".format(node, type(future.exception())))
+                    logger.error(dict(message="Getting instances from {} generated an exception: {}".format(node, type(future.exception()))))
                 else:
                     instances = instances + future.result()
-                    logging.debug("Get instances for {} found {}".format(node, len(future.result())))
+                    logger.debug(dict(message="Get instances for {} found {}".format(node, len(future.result()))))
         return instances
 
     def get_node(self, name):
         if name not in self.node_connections:
-            logging.error("Node {} not configured".format(name))
+            logger.error(dict(message="Node {} not configured".format(name)))
             raise exceptions.NoSuchNodeException()
         try:
             self.node_connections[name].ping()
             countainer_count = reduce(lambda x, y: x + y["slots"], self.get_instances(node_filter=name), 0)
-            logging.debug("{} has {} containers".format(name, countainer_count))
+            logger.debug(dict(message="{} has {} containers".format(name, countainer_count)))
             return {"id": name,
                     "slots": {
                         "total": self.config.slots_per_node,
@@ -107,7 +112,7 @@ class Connection(object):
                         "free": self.config.slots_per_node - countainer_count},
                     "state": "healthy"}
         except (ConnectionError, Timeout) as e:
-            logging.error("Error communication with {}: {}".format(name, e))
+            logger.error(dict(message="Error communication with {}: {}".format(name, e)))
             return {"id": name,
                     "slots": {
                         "total": 0,
@@ -122,23 +127,23 @@ class Connection(object):
             for future in futures.as_completed(future_to_nodes):
                 node = future_to_nodes[future]
                 if future.exception() is not None:
-                    logging.error("Getting details for {} generated an exception: {}".format(node, type(future.exception())))
+                    logger.error(dict(message="Getting details for {} generated an exception: {}".format(node, type(future.exception()))))
                 else:
                     nodes = nodes + [future.result()]
-                    logging.debug("Got details for {}".format(node))
+                    logger.debug(dict(message="Got details for {}".format(node)))
         return nodes
 
     def get_instance_summary(self):
         summary = {"total_instances": 0}
         apps = Counter()
-        logging.debug("Getting instances to generate summary")
+        logger.debug(dict(message="Getting instances to generate summary"))
         instances = self.get_instances()
         for instance in instances:
             summary["total_instances"] += 1
             apps[instance["app"]] += 1
-            logging.debug("Incrementing {} to {}".format(instance["app"], apps[instance["app"]]))
+            logger.debug(dict(message="Incrementing {} to {}".format(instance["app"], apps[instance["app"]])))
         summary.update({"apps": dict(apps)})
-        logging.debug("Returning summary {}".format(summary))
+        logger.debug(dict(message="Returning summary {}".format(summary)))
         return summary
 
     def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None, hostname=None):
@@ -146,7 +151,7 @@ class Connection(object):
         environment["SLUG_URL"] = slug_uri
 
         if not slots:
-            logging.info("Setting default slots for {}".format(app))
+            logger.info(dict(message="Setting default slots for {}".format(app)))
             slots = self.config.default_slots_per_instance
         if len(self.get_instances(node_filter=node)) + slots > self.config.slots_per_node:
             raise exceptions.NodeOutOfCapacityException()
@@ -163,16 +168,16 @@ class Connection(object):
                                                      name=app + "_" + str(uuid.uuid4()),
                                                      cpu_shares=slots,
                                                      mem_limit=self.config.slot_memory_mb * slots * 1024 * 1024)
-        logging.debug("Created container for {} on {}".format(app, node))
+        logger.debug(dict(message="Created container for {} on {}".format(app, node)))
 
         # start the container
         node_connection.start(container["Id"], port_bindings={8080: None})
-        logging.debug("Started container for {} on {}".format(app, node))
+        logger.debug(dict(message="Started container for {} on {}".format(app, node)))
 
         # inspect the container
         # it is important to inspect it *after* starting as before that it doesn't have port info in it)
         container_inspected = node_connection.inspect_container(container["Id"])
-        logging.info("Finished starting container for app {} on {}".format(app, node))
+        logger.info(dict(message="Finished starting container for app {} on {}".format(app, node)))
 
         # and return the container converted to an Instance
         return self.__get_instance(node, container_inspected)
@@ -184,15 +189,15 @@ class Connection(object):
             if instance["id"] == instance_id:
                 docker_hostname = instance["node"]
                 docker_container_id = instance_id
-                logging.debug("Stopping container {} on {}".format(docker_container_id, docker_hostname))
+                logger.debug(dict(message="Stopping container {} on {}".format(docker_container_id, docker_hostname)))
                 self.node_connections[docker_hostname].stop(docker_container_id)
-                logging.info("Stopped container {} on {}".format(docker_container_id, docker_hostname))
+                logger.info(dict(message="Stopped container {} on {}".format(docker_container_id, docker_hostname)))
 
                 try:
                     self.node_connections[docker_hostname].remove_container(docker_container_id, force=True)
-                    logging.debug("Removed container {} on {}".format(docker_container_id, docker_hostname))
+                    logger.info(dict(message="Removed container {} on {}".format(docker_container_id, docker_hostname)))
                 except:
-                    logging.warn("Failed to remove container {} on {}".format(docker_container_id, docker_hostname))
+                    logger.warn(dict(message="Failed to remove container {} on {}".format(docker_container_id, docker_hostname)))
                     pass  # we do not care if removing the container failed
 
                 return True
@@ -206,7 +211,7 @@ class Connection(object):
             base_url = "{}://{}".format(address.scheme, address.hostname)
 
         c = docker.Client(base_url=base_url, version="1.12", timeout=self.config.docker_timeout)
-        logging.debug("Docker client created for {}".format(address.hostname))
+        logger.debug(dict(message="Docker client created for {}".format(address.hostname)))
 
         # This is a hack to allow logs to work thru nginx.
         # It will break bidirectional traffic on .attach but fortunately we don't (yet) use it.
@@ -234,7 +239,7 @@ class Connection(object):
 
     def __get_instance(self, node, container):
         app = container["Name"][1:].split("_")[0]
-        logging.debug("App name is {}".format(app))
+        logger.debug(dict(message="getting instance details", microservice="App name is {}".format(app)))
         environment = {}
         slug_uri = None
         for env_item in container["Config"]["Env"]:
@@ -242,7 +247,7 @@ class Connection(object):
             if env_item_key not in ['HOME', 'PATH', 'SLUG_URL', 'PORT']:
                 environment[env_item_key] = env_item_value
             else:
-                logging.debug("Skipping {} from environment".format(env_item_key))
+                logger.debug(dict(message="Skipping {} from environment".format(env_item_key)))
             if env_item_key == 'SLUG_URL':
                 slug_uri = env_item_value
 

@@ -1,1 +1,1 @@
-web: gunicorn captain_web:app -k gevent --log-config logging.config
+web: gunicorn captain_web:app -k gevent --log-config logging.conf
