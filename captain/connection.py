@@ -41,7 +41,7 @@ class Connection(object):
 
     @lru_cache(maxsize=lru_cache_size)
     def _get_lru_instance_details(self, node, container_id, container_status, public_port):
-        logger.info(dict(message="Cache miss on node {} container {}".format(node, container_id)))
+        logger.debug(dict(message="Cache miss on node {} container {}".format(node, container_id)))
         node_conn = self.node_connections[node]
         node_container = node_conn.inspect_container(container_id)
         return node_container
