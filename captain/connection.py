@@ -95,11 +95,11 @@ class Connection(object):
             future_to_instances = dict((executor.submit(self.get_node_instances, node), node) for node, node_conn in filtered_nodes.items())
             for future in futures.as_completed(future_to_instances):
                 node = future_to_instances[future]
-                if future.exception() is not None:
-                    logger.error(dict(message="Getting instances from {} generated an exception: {}".format(node, type(future.exception()))))
-                else:
+                try:
                     instances = instances + future.result()
                     logger.debug(dict(message="Get instances for {} found {}".format(node, len(future.result()))))
+                except Exception as e:
+                    logger.error(dict(message="Getting instances from {} generated an exception: {}".format(node, e)))
         return instances
 
     def get_node(self, name):
