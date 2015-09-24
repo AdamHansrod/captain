@@ -73,13 +73,27 @@ class Connection(object):
                    (datetime.datetime.now() - exit_time).total_seconds() < self.config.docker_gc_grace_period:
                     logger.debug(dict(message="Exited container {} on {} not older than gc period, ignoring".format(container["Id"], node)))
                 else:
-                    node_conn.remove_container(container["Id"])
-                    deleted_container_count += 1
-                    logger.warn(dict(message="Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time)))
+                    try:
+                        node_conn.remove_container(container["Id"])
+                        deleted_container_count += 1
+                        logger.warn(dict(message="Exited container {} on {} with exit time at {} older than gc period, removed".format(container["Id"], node, formatted_exit_time)))
+                    except docker.errors.APIError as e:
+                        if '404 Client Error' in e.message:
+                            logger.info(dict(message='Container already removed: {}'.format(container["Id"])))
+                            pass
+                        else:
+                            raise
             elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
                 public_port = container["Ports"][0]["PublicPort"]
-                node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
-                node_instances.append(self.__get_instance(node, node_container))
+                try:
+                    node_container = self._get_lru_instance_details(node, container["Id"], container_status, public_port)
+                    node_instances.append(self.__get_instance(node, node_container))
+                except docker.errors.APIError as e:
+                    if '404 Client Error' in e.message:
+                        logger.info(dict(message='Container was deleted before being inspected: {}'.format(container["Id"])))
+                        pass
+                    else:
+                        raise
         logger.debug('Found {} exited containers, {} were deleted'.format(exited_container_count, deleted_container_count))
         return node_instances
 
