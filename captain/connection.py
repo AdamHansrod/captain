@@ -80,7 +80,6 @@ class Connection(object):
                     except docker.errors.APIError as e:
                         if '404 Client Error' in e.message:
                             logger.info(dict(message='Container already removed: {}'.format(container["Id"])))
-                            pass
                         else:
                             raise
             elif "Ports" in container and len(container["Ports"]) == 1 and container["Ports"][0]["PrivatePort"] == 8080:
@@ -91,7 +90,6 @@ class Connection(object):
                 except docker.errors.APIError as e:
                     if '404 Client Error' in e.message:
                         logger.info(dict(message='Container was deleted before being inspected: {}'.format(container["Id"])))
-                        pass
                     else:
                         raise
         logger.debug('Found {} exited containers, {} were deleted'.format(exited_container_count, deleted_container_count))
