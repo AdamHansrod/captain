@@ -215,13 +215,14 @@ class TestConnection(unittest.TestCase):
         # when
         connection = Connection(self.config)
         # Force an over capacity error
-        desired_slots = self.config.slots_per_node + 1
+        current_slot_count = sum([i["slots"] for i in connection.get_instances() if i['node'] == 'node-1'])
+        self.assertTrue(current_slot_count != self.config.slots_per_node)
 
         # then
         self.assertRaises(exceptions.NodeOutOfCapacityException,
                           connection.start_instance, "paye", "http://host/paye-216-slug.tgz", "node-1", None,
                           {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
-                           'JAVA_OPTS': "-Xmx256m -Xms256m"}, desired_slots)
+                           'JAVA_OPTS': "-Xmx256m -Xms256m"}, self.config.slots_per_node - current_slot_count + 1)
 
     @patch('docker.Client')
     def test_get_node_details(self, docker_client):
