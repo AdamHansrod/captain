@@ -170,7 +170,10 @@ class Connection(object):
         if not slots:
             logger.info(dict(message="Setting default slots for {}".format(app)))
             slots = self.config.default_slots_per_instance
-        if len(self.get_instances(node_filter=node)) + slots > self.config.slots_per_node:
+        current_slot_count = sum([
+            instance["slots"] for instance in self.get_instances()
+            if instance['node'] == node])
+        if current_slot_count + slots > self.config.slots_per_node:
             raise exceptions.NodeOutOfCapacityException()
 
         node_connection = self.node_connections[node]
