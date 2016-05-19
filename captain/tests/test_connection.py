@@ -1,9 +1,11 @@
+import logging
 import unittest
 from mock import patch, MagicMock, call
 from captain.connection import Connection
 from captain import exceptions
 from captain.tests.util_mock import ClientMock
 from requests.exceptions import ConnectionError
+from testfixtures import LogCapture
 import itertools
 
 
@@ -33,6 +35,29 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(3, summary['total_instances'])
         self.assertEqual(1, summary['apps']['ers-checking-frontend-27'])
         self.assertEqual(2, summary['apps']['paye'])
+
+    @patch('docker.Client')
+    def test_logs_exception_when_docker_nodes_config_is_bad(self, docker_client):
+        """
+        With three nodes configured but with one bad node an error should be logged but 2 nodes should be returned
+        """
+        # given
+        (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
+        expected_nodes = ['node-1', 'node-2']
+
+        # when
+        self.config.docker_nodes = ["http://node-1/", "http://node-2/", "http://node-3]"]
+
+        # given
+        with LogCapture(names='connection', level=logging.ERROR) as l:
+            connection = Connection(self.config)
+            l.check(
+                ('connection', 'ERROR', 'Failed to add node from config: http://node-3]')
+            )
+            nodes = connection.get_nodes()
+            self.assertTrue(len(nodes) == 2)
+            for node in nodes:
+                self.assertIn(node['id'], expected_nodes)
 
     @patch('docker.Client')
     def test_returns_all_instances_with_ports(self, docker_client):

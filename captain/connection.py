@@ -26,11 +26,14 @@ class Connection(object):
         self.node_connections = {}
         logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(config.docker_nodes))))
         for node in config.docker_nodes:
-            address = urlparse(node)
-            docker_conn = self.__get_connection(address)
-            docker_conn.verify = verify
-            docker_conn.auth = (address.username, address.password)
-            self.node_connections[address.hostname] = docker_conn
+            try:
+                address = urlparse(node)
+                docker_conn = self.__get_connection(address)
+                docker_conn.verify = verify
+                docker_conn.auth = (address.username, address.password)
+                self.node_connections[address.hostname] = docker_conn
+            except Exception:
+                logger.exception('Failed to add node from config: {}'.format(node))
         logger.debug(dict(message='Nodes configured: {}'.format(self.node_connections)))
 
     def close(self):
