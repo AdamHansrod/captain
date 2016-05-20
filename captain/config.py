@@ -3,7 +3,14 @@ import os
 
 class Config(object):
     def __init__(self):
-        self.docker_nodes = os.getenv("DOCKER_NODES", "http://localhost:5000").split(",")
+        def make_nodes_list(nodes, auth):
+            nodes_list = []
+            for node in nodes:
+                nodes_list.append('https://{}@{}'.format(auth, node))
+            return nodes_list
+        auth = os.getenv("DOCKER_AUTH", '')
+        docker_hosts = os.getenv("DOCKER_NODES", "localhost:5000").split(",")
+        self.docker_nodes = make_nodes_list(docker_hosts, auth)
         self.docker_gc_grace_period = int(os.getenv("DOCKER_GC_GRACE_PERIOD", "86400"))
         self.docker_timeout = int(os.getenv("DOCKER_TIMEOUT", "15"))
 

@@ -6,8 +6,9 @@ from captain.config import Config
 
 class TestConfig(unittest.TestCase):
 
-    DOCKER_NODE_1 = "http://some-node-1:5000"
-    DOCKER_NODE_2 = "http://some-node-2:5000"
+    DOCKER_NODE_1 = "some-node-1:5000"
+    DOCKER_NODE_2 = "some-node-2:5000"
+    DOCKER_AUTH = 'user:password'
     SLUG_RUNNER_COMMAND = "some command"
     SLUG_RUNNER_IMAGE = "runner/image"
     DOCKER_GC_GRACE_PERIOD = "100"
@@ -19,6 +20,7 @@ class TestConfig(unittest.TestCase):
     def test_gets_config_from_environment_properties(self, mock_getenv):
         # given
         environment = {
+            "DOCKER_AUTH": self.DOCKER_AUTH,
             "DOCKER_NODES": "{},{}".format(self.DOCKER_NODE_1, self.DOCKER_NODE_2),
             "SLUG_RUNNER_COMMAND": self.SLUG_RUNNER_COMMAND,
             "SLUG_RUNNER_IMAGE": self.SLUG_RUNNER_IMAGE,
@@ -33,7 +35,7 @@ class TestConfig(unittest.TestCase):
         config = Config()
 
         # then
-        self.assertEqual(config.docker_nodes, [self.DOCKER_NODE_1, self.DOCKER_NODE_2])
+        self.assertEqual(config.docker_nodes, ['https://user:password@some-node-1:5000', 'https://user:password@some-node-2:5000'])
         self.assertEqual(config.slug_runner_command, self.SLUG_RUNNER_COMMAND)
         self.assertEqual(config.slug_runner_image, self.SLUG_RUNNER_IMAGE)
         self.assertEqual(config.docker_gc_grace_period, int(self.DOCKER_GC_GRACE_PERIOD))
@@ -46,6 +48,7 @@ class TestConfig(unittest.TestCase):
     def test_defaults(self, mock_getenv):
         # given
         environment = {
+            "DOCKER_AUTH": self.DOCKER_AUTH,
             "SLUG_RUNNER_COMMAND": self.SLUG_RUNNER_COMMAND,
             "SLUG_RUNNER_IMAGE": self.SLUG_RUNNER_IMAGE
         }
@@ -55,7 +58,7 @@ class TestConfig(unittest.TestCase):
         config = Config()
 
         # then
-        self.assertEqual(config.docker_nodes, ["http://localhost:5000"])
+        self.assertEqual(config.docker_nodes, ["https://user:password@localhost:5000"])
         self.assertEqual(config.slug_runner_command, self.SLUG_RUNNER_COMMAND)
         self.assertEqual(config.slug_runner_image, self.SLUG_RUNNER_IMAGE)
 
