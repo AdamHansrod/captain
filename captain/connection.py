@@ -166,7 +166,7 @@ class Connection(object):
         logger.debug(dict(message="Returning summary {}".format(summary)))
         return summary
 
-    def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None, hostname=None):
+    def start_instance(self, app, slug_uri, node, allocated_port=None, environment={}, slots=None, hostname=None, slug_runner_version=None):
         environment["PORT"] = "8080"
         environment["SLUG_URL"] = slug_uri
 
@@ -181,8 +181,14 @@ class Connection(object):
 
         node_connection = self.node_connections[node]
 
+        # Use the version from the api parameter if it's set, otherwise use the version from config
+        if slug_runner_version is None:
+            slug_runner_versioned_image = "{}:{}".format(self.config.slug_runner_image, self.config.slug_runner_version)
+        else:
+            slug_runner_versioned_image = "{}:{}".format(self.config.slug_runner_image, slug_runner_version)
+
         # create a container
-        container = node_connection.create_container(image=self.config.slug_runner_image,
+        container = node_connection.create_container(image=slug_runner_versioned_image,
                                                      command=self.config.slug_runner_command,
                                                      ports=[8080],
                                                      environment=environment,

@@ -17,5 +17,6 @@ class Config(object):
             raise Exception("SLUG_RUNNER_COMMAND should be specified")
 
         self.slug_runner_image = os.getenv("SLUG_RUNNER_IMAGE")
+        self.slug_runner_version = os.getenv("SLUG_RUNNER_VERSION", "0.0.0")
         if self.slug_runner_image is None:
             raise Exception("SLUG_RUNNER_IMAGE should be specified")
