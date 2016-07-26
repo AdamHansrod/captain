@@ -16,6 +16,7 @@ class TestConnection(unittest.TestCase):
         self.config.docker_nodes = ["http://node-1/", "http://node-2/", "http://node-3/"]
         self.config.slug_runner_command = "runner command"
         self.config.slug_runner_image = "runner/image"
+        self.config.slug_runner_version = "0.0.73"
         self.config.docker_gc_grace_period = 86400
         self.config.slots_per_node = 10
         self.config.slot_memory_mb = 128
@@ -136,7 +137,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual("-Xmx256m -Xms256m", started_instance["environment"]["JAVA_OPTS"])
         self.assertEqual(2, started_instance["slots"])
 
-        mock_client_node1.create_container.assert_called_with(image=self.config.slug_runner_image,
+        mock_client_node1.create_container.assert_called_with(image="{}:{}".format(self.config.slug_runner_image, str(self.config.slug_runner_version)),
                                                               command=self.config.slug_runner_command,
                                                               ports=[8080],
                                                               environment={
@@ -157,7 +158,7 @@ class TestConnection(unittest.TestCase):
             {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
              'JAVA_OPTS': "-Xmx256m -Xms256m"})
 
-        mock_client_node1.create_container.assert_called_with(image=self.config.slug_runner_image,
+        mock_client_node1.create_container.assert_called_with(image="{}:{}".format(self.config.slug_runner_image, str(self.config.slug_runner_version)),
                                                               command=self.config.slug_runner_command,
                                                               ports=[8080],
                                                               environment={
@@ -177,6 +178,37 @@ class TestConnection(unittest.TestCase):
 
         self.assertFalse(mock_client_node2.create_container.called)
         self.assertFalse(mock_client_node2.start.called)
+
+    @patch('docker.Client')
+    @patch('uuid.uuid4')
+    def test_starts_instance_on_specific_slug_runner_version(self, uuid_mock, docker_client):
+        # given
+        (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
+        uuid_mock.return_value = 'SOME-OTHER-UUID'
+
+        # when
+        connection = Connection(self.config)
+        started_instance = connection.start_instance(
+            "paye", "https://host/paye_216.tgz", "node-1", None,
+            {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
+             'JAVA_OPTS': "-Xmx256m -Xms256m"}, 2, None, "0.0.99")
+
+        # then
+        mock_client_node1.create_container.assert_called_with(image="{}:{}".format(self.config.slug_runner_image, "0.0.99"),
+                                                              command=self.config.slug_runner_command,
+                                                              ports=[8080],
+                                                              environment={
+                                                                  'PORT': '8080',
+                                                                  'SLUG_URL': 'https://host/paye_216.tgz',
+                                                                  'HMRC_CONFIG': '-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080',
+                                                                  'JAVA_OPTS': '-Xmx256m -Xms256m'
+                                                              },
+                                                              detach=True,
+                                                              name="paye_SOME-OTHER-UUID",
+                                                              cpu_shares=2,
+                                                              hostname=None,
+                                                              mem_limit=256 * 1024 * 1024,
+                                                              )
 
     @patch('docker.Client')
     def test_stops_instance(self, docker_client):
