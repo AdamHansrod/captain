@@ -63,8 +63,6 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.slug_runner_image, self.SLUG_RUNNER_IMAGE)
         self.assertEqual(config.slug_runner_version, '0.0.0')
 
-        self.assertEqual(config.slug_runner_command, self.SLUG_RUNNER_COMMAND)
-        self.assertEqual(config.slug_runner_image, self.SLUG_RUNNER_IMAGE)
         self.assertEqual(config.docker_gc_grace_period, 86400)
 
         self.assertEqual(config.slots_per_node, 110)
