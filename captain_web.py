@@ -57,8 +57,8 @@ class RestInstances(restful.Resource):
             instance_response = captain_conn.start_instance(**instance_request)
             logger.debug(dict(message='Started instance: {}'.format(instance_response)))
         except exceptions.NodeOutOfCapacityException:
-            restful.abort(503,
-                          message="There aren't enough free slots on {} to service your request".format(instance_request["node"]))
+            logger.error("There aren't enough free slots on {} to service your request".format(instance_request['node']))
+            restful.abort(503, description="There aren't enough free slots on {} to service your request".format(instance_request['node']))
 
         return instance_response, 201
 
