@@ -18,3 +18,4 @@ six==1.10.0
 websocket-client==0.11.0
 wsgiref==0.1.2
 backports.functools-lru-cache==1.0.1
+boto3==1.4.4
