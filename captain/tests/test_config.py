@@ -17,6 +17,7 @@ class TestConfig(unittest.TestCase):
     DEFAULT_SLOTS_PER_INSTANCE = "2"
     AWS_DOCKER_HOST_TAG_NAME = "ROLE"
     AWS_DOCKER_HOST_TAG_VALUE = "APPSERVERS"
+    LOGGING_LEVEL = "DEBUG"
 
     @mock.patch("os.getenv")
     def test_gets_config_from_environment_properties(self, mock_getenv):
@@ -28,7 +29,8 @@ class TestConfig(unittest.TestCase):
             "DOCKER_GC_GRACE_PERIOD": self.DOCKER_GC_GRACE_PERIOD,
             "SLOTS_PER_NODE": self.SLOTS_PER_NODE,
             "SLOT_MEMORY_MB": self.SLOT_MEMORY_MB,
-            "DEFAULT_SLOTS_PER_INSTANCE": self.DEFAULT_SLOTS_PER_INSTANCE
+            "DEFAULT_SLOTS_PER_INSTANCE": self.DEFAULT_SLOTS_PER_INSTANCE,
+            "LOGGING_LEVEL": self.LOGGING_LEVEL
         }
         self.mock_environment(mock_getenv, environment)
 
@@ -44,6 +46,8 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.slots_per_node, int(self.SLOTS_PER_NODE))
         self.assertEqual(config.slot_memory_mb, int(self.SLOT_MEMORY_MB))
         self.assertEqual(config.default_slots_per_instance, int(self.DEFAULT_SLOTS_PER_INSTANCE))
+
+        self.assertEquals(config.logging_level, self.LOGGING_LEVEL)
 
     @mock.patch("os.getenv")
     def test_gets_aws_config_from_environment_properties(self, mock_getenv):
@@ -64,6 +68,7 @@ class TestConfig(unittest.TestCase):
         # then
         self.assertEqual(config.aws_docker_host_tag_name, self.AWS_DOCKER_HOST_TAG_NAME)
         self.assertEqual(config.aws_docker_host_tag_value, self.AWS_DOCKER_HOST_TAG_VALUE)
+        self.assertEquals(config.logging_level, "INFO")
 
     @mock.patch("os.getenv")
     def test_defaults(self, mock_getenv):

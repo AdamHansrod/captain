@@ -21,10 +21,17 @@ app.logger.setLevel(logging.INFO)
 
 ec2_client = boto3.client('ec2')
 aws_host_resolver = AWSHostResolver(ec2_client)
+config = Config()
+try:
+    app.logger.setLevel(config.logging_level)
+    app.logger.info("Logging level set to {}".format(config.logging_level))
+except ValueError:
+    app.logger.error("Unable to configured specified logging level, '{}' is an invalid value.".format(config.logging_level))
+
 
 @app.before_request
 def before_request():
-    g.captain_conn = Connection(Config(), aws_host_resolver)
+    g.captain_conn = Connection(config, aws_host_resolver)
 
 
 @app.teardown_appcontext
