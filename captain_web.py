@@ -1,6 +1,9 @@
+import boto3
 from flask import Flask, g, request, redirect, Response
 from flask.ext import restful
 from flask.ext.restful import reqparse
+
+from captain.aws_host_resolver import AWSHostResolver
 from captain.config import Config
 from captain.connection import Connection
 from captain import exceptions
@@ -16,10 +19,12 @@ stream_handler = logging.StreamHandler()
 app.logger.addHandler(stream_handler)
 app.logger.setLevel(logging.INFO)
 
+ec2_client = boto3.client('ec2')
+aws_host_resolver = AWSHostResolver(ec2_client)
 
 @app.before_request
 def before_request():
-    g.captain_conn = Connection(Config())
+    g.captain_conn = Connection(Config(), aws_host_resolver)
 
 
 @app.teardown_appcontext
