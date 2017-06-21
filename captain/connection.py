@@ -20,12 +20,22 @@ logger = logging.getLogger('connection')
 
 
 class Connection(object):
-    def __init__(self, config, verify=False):
+    def __init__(self, config, aws_host_resolver, verify=False):
         self.config = config
+        self.aws_host_resolver = aws_host_resolver
 
         self.node_connections = {}
-        logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(config.docker_nodes))))
-        for node in config.docker_nodes:
+
+        if self.config.aws_docker_host_tag_value is not None:
+            docker_hosts = self.aws_host_resolver.find_running_hosts_private_ip_by_tag(self.config.aws_docker_host_tag_name,
+                                                                                       self.config.aws_docker_host_tag_value)
+            docker_nodes = ["https://{}:9400".format(docker_host)for docker_host in docker_hosts]
+        else:
+            docker_nodes = config.docker_nodes
+
+        logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(docker_nodes))))
+
+        for node in docker_nodes:
             try:
                 address = urlparse(node)
                 docker_conn = self.__get_connection(address)

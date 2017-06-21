@@ -21,6 +21,10 @@ class TestConnection(unittest.TestCase):
         self.config.slots_per_node = 10
         self.config.slot_memory_mb = 128
         self.config.default_slots_per_instance = 2
+        self.config.aws_docker_host_tag_name = None
+        self.config.aws_docker_host_tag_value = None
+
+        self.aws_host_resolver = MagicMock()
 
     @patch('docker.Client')
     def test_returns_summary_of_instances(self, docker_client):
@@ -66,7 +70,7 @@ class TestConnection(unittest.TestCase):
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         #   get_instances is async and order isn't guaranteed, sort it for the tests
         instances = sorted(connection.get_instances(), key=lambda i: i["id"])
 
@@ -120,7 +124,7 @@ class TestConnection(unittest.TestCase):
         uuid_mock.return_value = 'SOME-UUID'
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         started_instance = connection.start_instance(
             "paye", "https://host/paye_216.tgz", "node-1", None,
             {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
@@ -216,7 +220,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         result = connection.stop_instance("80be2a9e62ba00")
 
         # then
@@ -234,7 +238,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         result = connection.stop_instance("80be2a9e62ba00")
 
         # then
@@ -252,7 +256,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         result = connection.stop_instance("nonexisting-instance")
 
         # then
@@ -270,7 +274,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         # Force an over capacity error
         current_slot_count = sum([i["slots"] for i in connection.get_instances() if i['node'] == 'node-1'])
         self.assertTrue(current_slot_count != self.config.slots_per_node)
@@ -284,7 +288,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_get_node_details(self, docker_client):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
 
         self.assertRaises(exceptions.NoSuchNodeException, connection.get_node, "bum-node-1")
 
@@ -298,7 +302,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_get_logs(self, docker_client):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
 
         self.assertRaises(exceptions.NoSuchInstanceException, connection.get_logs, "non-existant")
 
@@ -315,7 +319,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_get_nodes(self, docker_client):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
 
         nodes = connection.get_nodes()
         self.assertTrue(len(nodes) == 3)
@@ -341,3 +345,26 @@ class TestConnection(unittest.TestCase):
 
         # 61c2695fd82b is an old container with epoch start and exit times and should be gc'd
         docker_conn2.remove_container.assert_has_calls([call("61c2695fd82b")])
+
+    def test_it_should_configure_docker_nodes_from_aws_when_config_contains_tag_value(self):
+        # Given
+        self.config = MagicMock()
+        self.config.aws_docker_host_tag_name = "role"
+        self.config.aws_docker_host_tag_value = "appserver"
+
+        aws_host_ip_addresses = ['1.1.1.1', '2.2.2.2']
+        self.aws_host_resolver.find_running_hosts_private_ip_by_tag = MagicMock(return_value=aws_host_ip_addresses)
+
+        # When
+        connection = Connection(self.config, self.aws_host_resolver)
+
+        # Then
+        self.aws_host_resolver\
+            .find_running_hosts_private_ip_by_tag\
+            .assert_called_once_with(self.config.aws_docker_host_tag_name,
+                                     self.config.aws_docker_host_tag_value)
+
+        self.assertEquals(2, len(connection.node_connections))
+        for ip_address in aws_host_ip_addresses:
+            self.assertIsNotNone(connection.node_connections[ip_address])
+            self.assertEquals("https://{}:9400".format(ip_address), connection.node_connections[ip_address].base_url)
