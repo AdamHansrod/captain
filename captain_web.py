@@ -1,6 +1,9 @@
+import boto3
 from flask import Flask, request, redirect, Response, current_app
 from flask.ext import restful
 from flask.ext.restful import reqparse
+
+from captain.aws_host_resolver import AWSHostResolver
 from captain.config import Config
 from captain.connection import Connection
 from captain import exceptions
@@ -18,13 +21,15 @@ app = Flask(__name__)
 app.debug = True
 api = restful.Api(app, catch_all_404s=True)
 
+ec2_client = boto3.client('ec2')
+aws_host_resolver = AWSHostResolver(ec2_client)
 
 def get_captain_conn():
     logger.debug(dict(message='Getting captain connection'))
     persistent_captain_conn = getattr(current_app, '_persistent_captain_conn', None)
     if persistent_captain_conn is None:
         logger.debug(dict(message='No persistent captain connection, creating one'))
-        persistent_captain_conn = current_app._persistent_captain_conn = Connection(Config())
+        persistent_captain_conn = current_app._persistent_captain_conn = Connection(Config(), aws_host_resolver)
     return persistent_captain_conn
 
 
