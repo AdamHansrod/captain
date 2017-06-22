@@ -15,7 +15,6 @@ from collections import Counter
 
 lru_cache_size = 1024
 
-logging.config.fileConfig("logging.conf")
 logger = logging.getLogger('connection')
 
 
