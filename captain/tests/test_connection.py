@@ -32,7 +32,7 @@ class TestConnection(unittest.TestCase):
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         summary = connection.get_instance_summary()
 
         # then
@@ -55,7 +55,7 @@ class TestConnection(unittest.TestCase):
 
         # given
         with LogCapture(names='connection', level=logging.ERROR) as l:
-            connection = Connection(self.config)
+            connection = Connection(self.config, self.aws_host_resolver)
             l.check(
                 ('connection', 'ERROR', 'Failed to add node from config: http://node-3]')
             )
@@ -191,7 +191,7 @@ class TestConnection(unittest.TestCase):
         uuid_mock.return_value = 'SOME-OTHER-UUID'
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         started_instance = connection.start_instance(
             "paye", "https://host/paye_216.tgz", "node-1", None,
             {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
@@ -335,7 +335,7 @@ class TestConnection(unittest.TestCase):
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config)
+        connection = Connection(self.config, self.aws_host_resolver)
         # trigger gc
         connection.get_instances()
 
