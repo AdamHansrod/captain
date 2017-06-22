@@ -29,7 +29,7 @@ class Connection(object):
         if self.config.aws_docker_host_tag_value is not None:
             docker_hosts = self.aws_host_resolver.find_running_hosts_private_ip_by_tag(self.config.aws_docker_host_tag_name,
                                                                                        self.config.aws_docker_host_tag_value)
-            docker_nodes = ["https://{}:9400".format(docker_host)for docker_host in docker_hosts]
+            docker_nodes = ["https://{}:9400".format(docker_host) for docker_host in docker_hosts]
         else:
             docker_nodes = config.docker_nodes
 
