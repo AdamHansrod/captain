@@ -29,3 +29,5 @@ class Config(object):
         self.aws_docker_host_tag_value = os.getenv("AWS_DOCKER_HOST_TAG_VALUE")
         if len(self.docker_nodes) > 0 and self.aws_docker_host_tag_value is not None:
             raise Exception("DOCKER_NODES and AWS_DOCKER_HOST_TAG_VALUE are mutually exclusive")
+
+        self.log_config_file_path = os.getenv("LOG_CONFIG_FILE_PATH", "logging.conf")

@@ -1,14 +1,16 @@
+import os
+os.environ["SLUG_RUNNER_COMMAND"] = ''
+os.environ["SLUG_RUNNER_IMAGE"] = ''
+os.environ["LOG_CONFIG_FILE_PATH"] = "{}/../../logging.conf".format(os.path.dirname(os.path.abspath(__file__)))
+
 import captain_web
 import json
-import os
 import logging
 import unittest
 from captain import exceptions
 from mock import patch
 from nose.tools import eq_
 
-os.environ["SLUG_RUNNER_COMMAND"] = ''
-os.environ["SLUG_RUNNER_IMAGE"] = ''
 
 
 class TestApi(unittest.TestCase):
