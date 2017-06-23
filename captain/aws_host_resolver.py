@@ -1,5 +1,7 @@
 import logging
 
+logger = logging.getLogger('aws_host_resolver')
+
 
 class AWSHostResolver(object):
 
@@ -13,7 +15,7 @@ class AWSHostResolver(object):
         Returns a list of private IP address strings
         for any running hosts with the specified tag.
         """
-        logging.debug("Looking for EC2 hosts with tag: {} and value: {}".format(tag_name, tag_value))
+        logger.debug(dict(Message="Looking for EC2 hosts with tag '{}' and value '{}'".format(tag_name, tag_value)))
 
         tag_filter = {
             'Name': 'tag:{}'.format(tag_name),
@@ -28,7 +30,7 @@ class AWSHostResolver(object):
             DryRun=self.dry_run
         )
 
-        logging.debug("Describe Instances Response: {}".format(describe_instances_response))
+        logger.debug(dict(Message="Describe Instances Response: {}".format(describe_instances_response)))
 
         if len(describe_instances_response['Reservations']) > 0:
             instances = describe_instances_response['Reservations'][0]['Instances']

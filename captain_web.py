@@ -24,6 +24,7 @@ api = restful.Api(app, catch_all_404s=True)
 ec2_client = boto3.client('ec2')
 aws_host_resolver = AWSHostResolver(ec2_client)
 
+
 def get_captain_conn():
     logger.debug(dict(message='Getting captain connection'))
     persistent_captain_conn = getattr(current_app, '_persistent_captain_conn', None)
