@@ -1,6 +1,8 @@
 import unittest
 
 import boto3
+import time
+from mock import MagicMock
 from moto import mock_ec2
 
 from captain.aws_host_resolver import AWSHostResolver
@@ -53,3 +55,48 @@ class TestAWSHostResolver(unittest.TestCase):
 
         # Then
         self.assertLessEqual([], actual_response)
+
+    def test_it_should_only_hit_aws_once_per_configured_time_period(self):
+        # Given
+        ec2_client_mock = MagicMock()
+        self.under_test = AWSHostResolver(ec2_client_mock)
+
+        # When
+        ec2_client_mock.describe_instances.return_value = \
+            {'Reservations':
+                [
+                    {'Instances':
+                         [{'PrivateIpAddress': '1.1.1.1'}]
+                     }
+                ]
+            }
+        for count in range(10):
+            self.under_test.find_running_hosts_private_ip_by_tag(None, None)
+
+        # Then
+        self.assertEquals(1, ec2_client_mock.describe_instances.call_count)
+
+    def test_it_should_only_hit_aws_once_per_configured_time_period(self):
+        # Given
+        aws_call_interval_secs = 1
+        ec2_client_mock = MagicMock()
+        self.under_test = AWSHostResolver(ec2_client_mock, aws_call_interval_secs=aws_call_interval_secs)
+
+        # When
+        ec2_client_mock.describe_instances.return_value = \
+            {'Reservations':
+                [
+                    {'Instances':
+                         [{'PrivateIpAddress': '1.1.1.1'}]
+                     }
+                ]
+            }
+        for count in range(2):
+            time.sleep(1)
+            self.under_test.find_running_hosts_private_ip_by_tag(None, None)
+
+        # Then
+        self.assertEquals(2, ec2_client_mock.describe_instances.call_count)
+
+    def test_updating_the_cache_should_be_thread_safe(self):
+        self.fail("Not yet implemented.")
