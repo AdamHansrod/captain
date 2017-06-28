@@ -5,14 +5,22 @@ import boto3
 import time
 
 import logging
+
+import datetime
 from mock import MagicMock
 from moto import mock_ec2
 
 from captain.aws_host_resolver import AWSHostResolver
 
+# Useful logging configuration for seeing which thread is doing what.
+# Don't forget to set the --nologcapture flag to stop nosetest silencing logging.
+logger = logging.getLogger('test_aws_host_resolver')
+logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
+
 
 class TestAWSHostResolver(unittest.TestCase):
 
+    @mock_ec2
     def setUp(self):
         self.ec2_resource = boto3.resource('ec2', region_name='eu-west-2')
         self.ec2_client = self.ec2_resource.meta.client
@@ -103,36 +111,17 @@ class TestAWSHostResolver(unittest.TestCase):
         # Then
         self.assertEquals(2, ec2_client_mock.describe_instances.call_count)
 
-    def test_updating_the_cache_should_be_thread_safe(self):
-        """
-        Tests that cache population is thread safe by spinning up multiple threads and getting
-        them to make requests for data concurrently. Verifies that only one thread ever causes the
-        cache to populate (i.e. that our use of the semaphore is thread safe) and that all thread
-        requests result in the expected data being returned.
-        """
-
-        # Useful logging configuration for seeing which thread is doing what.
-        # Don't forget to set the --nologcapture flag to stop nosetest silencing logging.
-        logger = logging.getLogger('test_aws_host_resolver')
-        logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
-
+    def test_cache_configuration_results_in_expected_number_of_method_calls(self):
         # Given
-        number_of_threads = 8
-        queries_per_thread = 10
-        threads = []
+        test_duration_secs = 2
         aws_call_interval_secs = 1
         ec2_client_mock = MagicMock()
         self.under_test = AWSHostResolver(ec2_client_mock, aws_call_interval_secs=aws_call_interval_secs)
-        mapped_thread_responses = dict()
+        responses = list()
 
-        def threaded_function():
-            current_thread = threading.current_thread()
-            for count in range(queries_per_thread):
-                logger.info("About to make request {} of {}".format(count, queries_per_thread))
-                response = self.under_test.find_running_hosts_private_ip_by_tag(None, None)
-                mapped_thread_responses[current_thread].append(response)
-                logger.info("Request {} complete".format(count))
-            logger.info("All requests complete".format(current_thread.name))
+        start_time = datetime.datetime.utcnow()
+        end_time = start_time + datetime.timedelta(seconds=test_duration_secs)
+        expected_number_of_method_calls = test_duration_secs / aws_call_interval_secs
 
         # When
         ec2_client_mock.describe_instances.return_value = \
@@ -144,19 +133,16 @@ class TestAWSHostResolver(unittest.TestCase):
                 ]
             }
 
-        for count in range(number_of_threads):
-            thread = threading.Thread(target=threaded_function, args=[])
-            mapped_thread_responses[thread] = []
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
+        number_of_method_invocations = 0
+        while datetime.datetime.utcnow() < end_time:
+            response = self.under_test.find_running_hosts_private_ip_by_tag(None, None)
+            responses.append(response)
+            number_of_method_invocations += 1
+        logger.info("Requests complete, made {} requests in {} seconds".format(number_of_method_invocations, test_duration_secs))
 
         # Then
-        self.assertEquals(1, ec2_client_mock.describe_instances.call_count)
+        self.assertEquals(expected_number_of_method_calls, ec2_client_mock.describe_instances.call_count)
 
-        for responses in mapped_thread_responses.itervalues():
-            for response in responses:
-                self.assertEquals(['1.1.1.1'], response)
+        for response in responses:
+            self.assertEquals(['1.1.1.1'], response)
 
