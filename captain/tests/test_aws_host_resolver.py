@@ -14,7 +14,7 @@ from captain.aws_host_resolver import AWSHostResolver
 class TestAWSHostResolver(unittest.TestCase):
 
     def setUp(self):
-        self.ec2_resource = boto3.resource('ec2')
+        self.ec2_resource = boto3.resource('ec2', region_name='eu-west-2')
         self.ec2_client = self.ec2_resource.meta.client
         self.under_test = AWSHostResolver(self.ec2_client)
 
