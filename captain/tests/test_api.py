@@ -1,14 +1,16 @@
+from captain.tests import aws_utils
 import os
 os.environ["SLUG_RUNNER_COMMAND"] = ''
 os.environ["SLUG_RUNNER_IMAGE"] = ''
 os.environ["LOG_CONFIG_FILE_PATH"] = "{}/../../logging.conf".format(os.path.dirname(os.path.abspath(__file__)))
+aws_utils.setup_dummy_aws_creds()
 
 import captain_web
 import json
 import logging
 import unittest
 from captain import exceptions
-from captain.tests import aws_utils
+
 from mock import patch
 from nose.tools import eq_
 
@@ -16,7 +18,6 @@ from nose.tools import eq_
 class TestApi(unittest.TestCase):
 
     def setUp(self):
-        aws_utils.setup_dummy_aws_creds()
         self.test_app = captain_web.app.test_client()
         log = logging.getLogger('werkzeug')
         log.disabled = True
