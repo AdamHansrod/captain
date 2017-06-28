@@ -12,6 +12,7 @@ from mock import MagicMock
 from moto import mock_ec2
 
 from captain.aws_host_resolver import AWSHostResolver
+from captain.tests import aws_utils
 
 # Useful logging configuration for seeing which thread is doing what.
 # Don't forget to set the --nologcapture flag to stop nosetest silencing logging.
@@ -23,9 +24,8 @@ class TestAWSHostResolver(unittest.TestCase):
 
     @mock_ec2
     def setUp(self):
-        os.environ['AWS_ACCESS_KEY_ID'] = "my pretend AWS access key id - irrelevant as we're mocking AWS with Moto"
-        os.environ['AWS_SECRET_ACCESS_KEY'] = "my pretend AWS secret access key id - irrelevant as we're mocking AWS with Moto"
-        self.ec2_resource = boto3.resource('ec2', region_name='eu-west-2')
+        aws_utils.setup_dummy_aws_creds()
+        self.ec2_resource = boto3.resource('ec2')
         self.ec2_client = self.ec2_resource.meta.client
         self.under_test = AWSHostResolver(self.ec2_client)
 
