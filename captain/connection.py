@@ -1,5 +1,7 @@
 import uuid
+
 import docker
+
 from urlparse import urlparse
 from captain import exceptions
 # futures and datetime together do weird things
@@ -19,18 +21,11 @@ logger = logging.getLogger('connection')
 
 
 class Connection(object):
-    def __init__(self, config, aws_host_resolver, verify=False):
+    def __init__(self, config, docker_node_resolver, verify=False):
         self.config = config
-        self.aws_host_resolver = aws_host_resolver
-
+        self.docker_node_resolver = docker_node_resolver
         self.node_connections = {}
-
-        if self.config.aws_docker_host_tag_value is not None:
-            docker_hosts = self.aws_host_resolver.find_running_hosts_private_ip_by_tag(self.config.aws_docker_host_tag_name,
-                                                                                       self.config.aws_docker_host_tag_value)
-            docker_nodes = ["https://{}:9400".format(docker_host) for docker_host in docker_hosts]
-        else:
-            docker_nodes = config.docker_nodes
+        docker_nodes = self.docker_node_resolver.get_docker_nodes()
 
         logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(docker_nodes))))
 
@@ -41,8 +36,8 @@ class Connection(object):
                 docker_conn.verify = verify
                 docker_conn.auth = (address.username, address.password)
                 self.node_connections[address.hostname] = docker_conn
-            except Exception:
-                logger.exception('Failed to add node from config: {}'.format(node))
+            except Exception as e:
+                logger.exception('Could not obtain connection to docker node: {}. Exception: {}'.format(node, e))
         logger.debug(dict(message='Nodes configured: {}'.format(self.node_connections)))
 
     def close(self):

@@ -1,9 +1,8 @@
-from captain.tests import aws_utils
 import os
 os.environ["SLUG_RUNNER_COMMAND"] = ''
 os.environ["SLUG_RUNNER_IMAGE"] = ''
 os.environ["LOG_CONFIG_FILE_PATH"] = "{}/../../logging.conf".format(os.path.dirname(os.path.abspath(__file__)))
-aws_utils.setup_dummy_aws_creds()
+os.environ['DOCKER_NODES'] = '1.1.1.1,2.2.2.2'
 
 import captain_web
 import json

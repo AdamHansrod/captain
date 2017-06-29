@@ -1,11 +1,10 @@
-import logging
-
 import operator
-from cachetools import cached, TTLCache, cachedmethod
 from datetime import datetime, timedelta
-from threading import BoundedSemaphore, RLock
+from threading import RLock
 
-logger = logging.getLogger('aws_host_resolver')
+from cachetools import TTLCache, cachedmethod
+
+import logging
 
 
 class AWSHostResolver(object):
@@ -15,10 +14,10 @@ class AWSHostResolver(object):
     Instances of this class are thread safe, hence a single instance can be used across many threads.
     """
 
-    def __init__(self, ec2_client, dry_run=False, max_results=1000, aws_call_interval_secs=10):
+    def __init__(self, ec2_client, dry_run=False, aws_call_interval_secs=10):
+        self.logger = logging.getLogger(__name__)
         self.ec2_client = ec2_client
         self.dry_run = dry_run
-        self.max_results = max_results
         self.aws_call_interval_secs = aws_call_interval_secs
         self.aws_cache_expiry_time = datetime.utcnow()
         self.instances = []
@@ -32,7 +31,7 @@ class AWSHostResolver(object):
         for any running hosts with the specified tag.
         """
         if datetime.utcnow() > self.aws_cache_expiry_time:
-            logger.info(dict(Message="Looking for EC2 hosts with tag '{}' and value '{}'".format(tag_name, tag_value)))
+            self.logger.info(dict(Message="Looking for EC2 hosts with tag '{}' and value '{}'".format(tag_name, tag_value)))
 
             tag_filter = {
                 'Name': 'tag:{}'.format(tag_name),
@@ -47,15 +46,15 @@ class AWSHostResolver(object):
                 DryRun=self.dry_run
             )
 
-            logger.info(dict(Message="Describe Instances Response: {}".format(describe_instances_response)))
+            self.logger.info(dict(Message="Describe Instances Response: {}".format(describe_instances_response)))
 
             if len(describe_instances_response['Reservations']) > 0:
                 self.instances = describe_instances_response['Reservations'][0]['Instances']
             else:
                 self.instances = []
             self.aws_cache_expiry_time = datetime.utcnow() + timedelta(seconds=self.aws_call_interval_secs)
-            logger.debug(dict(Message="Cache expiry time updated, now: {}".format(self.aws_cache_expiry_time)))
+            self.logger.debug(dict(Message="Cache expiry time updated, now: {}".format(self.aws_cache_expiry_time)))
         else:
-            logger.debug(dict(Message="Expiry time not reached, using cached data."))
+            self.logger.debug(dict(Message="Expiry time not reached, using cached data."))
 
         return [instance['PrivateIpAddress'] for instance in self.instances]

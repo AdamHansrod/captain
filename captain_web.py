@@ -1,15 +1,15 @@
-import boto3
+import json
+import logging.config
+import socket
+
 from flask import Flask, request, redirect, Response, current_app
 from flask.ext import restful
 from flask.ext.restful import reqparse
 
-from captain.aws_host_resolver import AWSHostResolver
+from captain import exceptions
 from captain.config import Config
 from captain.connection import Connection
-from captain import exceptions
-import socket
-import json
-import logging.config
+from captain.docker_node import DockerNodeResolverFactory
 
 app_config = Config()
 
@@ -21,8 +21,7 @@ app = Flask(__name__)
 app.debug = True
 api = restful.Api(app, catch_all_404s=True)
 
-ec2_client = boto3.client('ec2')
-aws_host_resolver = AWSHostResolver(ec2_client)
+docker_node_resolver = DockerNodeResolverFactory(app_config).get_host_resolver()
 
 
 def get_captain_conn():
@@ -30,7 +29,7 @@ def get_captain_conn():
     persistent_captain_conn = getattr(current_app, '_persistent_captain_conn', None)
     if persistent_captain_conn is None:
         logger.debug(dict(message='No persistent captain connection, creating one'))
-        persistent_captain_conn = current_app._persistent_captain_conn = Connection(app_config, aws_host_resolver)
+        persistent_captain_conn = current_app._persistent_captain_conn = Connection(app_config, docker_node_resolver)
     return persistent_captain_conn
 
 
