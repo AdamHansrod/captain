@@ -1,5 +1,3 @@
-import os
-import threading
 import unittest
 
 import boto3

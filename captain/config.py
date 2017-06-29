@@ -8,6 +8,11 @@ class Config(object):
         docker_nodes_string = os.getenv("DOCKER_NODES", None)
         if docker_nodes_string is not None:
                 self.docker_nodes = docker_nodes_string.split(",")
+        self.aws_docker_host_tag_name = os.getenv("AWS_DOCKER_HOST_TAG_NAME", "role")
+        self.aws_docker_host_tag_value = os.getenv("AWS_DOCKER_HOST_TAG_VALUE")
+        if len(self.docker_nodes) > 0 and self.aws_docker_host_tag_value is not None:
+            raise Exception("DOCKER_NODES and AWS_DOCKER_HOST_TAG_VALUE are mutually exclusive")
+
         self.docker_gc_grace_period = int(os.getenv("DOCKER_GC_GRACE_PERIOD", "86400"))
         self.docker_timeout = int(os.getenv("DOCKER_TIMEOUT", "15"))
 
@@ -24,10 +29,5 @@ class Config(object):
         self.slug_runner_version = os.getenv("SLUG_RUNNER_VERSION", "0.0.0")
         if self.slug_runner_image is None:
             raise Exception("SLUG_RUNNER_IMAGE must be specified")
-
-        self.aws_docker_host_tag_name = os.getenv("AWS_DOCKER_HOST_TAG_NAME", "role")
-        self.aws_docker_host_tag_value = os.getenv("AWS_DOCKER_HOST_TAG_VALUE")
-        if len(self.docker_nodes) > 0 and self.aws_docker_host_tag_value is not None:
-            raise Exception("DOCKER_NODES and AWS_DOCKER_HOST_TAG_VALUE are mutually exclusive")
 
         self.log_config_file_path = os.getenv("LOG_CONFIG_FILE_PATH", "logging.conf")
