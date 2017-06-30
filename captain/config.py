@@ -8,6 +8,7 @@ class Config(object):
         docker_nodes_string = os.getenv("DOCKER_NODES", None)
         if docker_nodes_string is not None:
                 self.docker_nodes = docker_nodes_string.split(",")
+        self.aws_call_interval_secs = int(os.getenv("AWS_CALL_INTERVAL_SECS", "60"))
         self.aws_docker_host_tag_name = os.getenv("AWS_DOCKER_HOST_TAG_NAME", "role")
         self.aws_docker_host_tag_value = os.getenv("AWS_DOCKER_HOST_TAG_VALUE")
         if len(self.docker_nodes) > 0 and self.aws_docker_host_tag_value is not None:

@@ -18,6 +18,7 @@ class TestConfig(unittest.TestCase):
     DEFAULT_SLOTS_PER_INSTANCE = "2"
     AWS_DOCKER_HOST_TAG_NAME = "ROLE"
     AWS_DOCKER_HOST_TAG_VALUE = "APPSERVERS"
+    AWS_CALL_INTERVAL_SECS = "360"
     LOG_FILE_CONFIG_PATH = "/etc/captain/custom-logging-file.conf"
 
     @mock.patch("os.getenv")
@@ -32,7 +33,8 @@ class TestConfig(unittest.TestCase):
             "SLOTS_PER_NODE": self.SLOTS_PER_NODE,
             "SLOT_MEMORY_MB": self.SLOT_MEMORY_MB,
             "DEFAULT_SLOTS_PER_INSTANCE": self.DEFAULT_SLOTS_PER_INSTANCE,
-            "LOG_CONFIG_FILE_PATH": self.LOG_FILE_CONFIG_PATH
+            "LOG_CONFIG_FILE_PATH": self.LOG_FILE_CONFIG_PATH,
+            "AWS_CALL_INTERVAL_SECS": self.AWS_CALL_INTERVAL_SECS
 
         }
         self.mock_environment(mock_getenv, environment)
@@ -51,6 +53,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.slot_memory_mb, int(self.SLOT_MEMORY_MB))
         self.assertEqual(config.default_slots_per_instance, int(self.DEFAULT_SLOTS_PER_INSTANCE))
         self.assertEqual(config.log_config_file_path, self.LOG_FILE_CONFIG_PATH)
+        self.assertEqual(config.aws_call_interval_secs, int(self.AWS_CALL_INTERVAL_SECS))
 
     @mock.patch("os.getenv")
     def test_gets_aws_config_from_environment_properties(self, mock_getenv):
@@ -96,6 +99,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.slot_memory_mb, int(self.SLOT_MEMORY_MB))
         self.assertEqual(config.default_slots_per_instance, int(self.DEFAULT_SLOTS_PER_INSTANCE))
 
+        self.assertEqual(config.aws_call_interval_secs, 60)
         self.assertEqual(config.aws_docker_host_tag_name, "role")
         self.assertIsNone(config.aws_docker_host_tag_value)
         self.assertEqual(config.log_config_file_path, "logging.conf")
