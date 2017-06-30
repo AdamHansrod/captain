@@ -84,6 +84,7 @@ class TestDockerNodeResolverFactory(unittest.TestCase):
         # Given
         self.config.aws_docker_host_tag_name = 'role'
         self.config.aws_docker_host_tag_value = 'appservers'
+        self.config.aws_call_interval_secs = 180
         ec2_client = MagicMock
         aws_host_resolver = MagicMock
 
@@ -98,4 +99,5 @@ class TestDockerNodeResolverFactory(unittest.TestCase):
                 self.assertEquals(node_resolver.aws_docker_host_tag_name, self.config.aws_docker_host_tag_name)
                 self.assertEquals(node_resolver.aws_docker_host_tag_value, self.config.aws_docker_host_tag_value)
                 create_ec2_client_method.assert_called_once()
-                create_aws_host_resolver_method.assert_called_once_with(ec2_client)
+                create_aws_host_resolver_method.assert_called_once_with(ec2_client,
+                                                                        self.config)

@@ -26,14 +26,15 @@ class DockerNodeResolverFactory(object):
         self.logger.debug(dict(Message={"Created EC2 Client"}))
         return ec2_client
 
-    def __create_aws_host_resolver(self, ec2_client):
-        aws_host_resolver = AWSHostResolver(ec2_client)
+    def __create_aws_host_resolver(self, ec2_client, config):
+        aws_host_resolver = AWSHostResolver(ec2_client,
+                                            aws_call_interval_secs=config.config.aws_call_interval_secs)
         self.logger.debug(dict(Message={"Created AWSHostResolver"}))
         return aws_host_resolver
 
     def __create_aws_docker_node_resolver(self, config):
         ec2_client = self.__create_ec2_client()
-        aws_host_resolver = self.__create_aws_host_resolver(ec2_client)
+        aws_host_resolver = self.__create_aws_host_resolver(ec2_client, config)
         return AWSDockerNodeResolver(aws_host_resolver,
                                      config.aws_docker_host_tag_name,
                                      config.aws_docker_host_tag_value)
