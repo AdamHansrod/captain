@@ -1,5 +1,7 @@
 import uuid
+
 import docker
+
 from urlparse import urlparse
 from captain import exceptions
 # futures and datetime together do weird things
@@ -15,25 +17,27 @@ from collections import Counter
 
 lru_cache_size = 1024
 
-logging.config.fileConfig("logging.conf")
 logger = logging.getLogger('connection')
 
 
 class Connection(object):
-    def __init__(self, config, verify=False):
+    def __init__(self, config, docker_node_resolver, verify=False):
         self.config = config
-
+        self.docker_node_resolver = docker_node_resolver
         self.node_connections = {}
-        logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(config.docker_nodes))))
-        for node in config.docker_nodes:
+        docker_nodes = self.docker_node_resolver.get_docker_nodes()
+
+        logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(docker_nodes))))
+
+        for node in docker_nodes:
             try:
                 address = urlparse(node)
                 docker_conn = self.__get_connection(address)
                 docker_conn.verify = verify
                 docker_conn.auth = (address.username, address.password)
                 self.node_connections[address.hostname] = docker_conn
-            except Exception:
-                logger.exception('Failed to add node from config: {}'.format(node))
+            except Exception as e:
+                logger.exception('Could not obtain connection to docker node: {}. Exception: {}'.format(node, e))
         logger.debug(dict(message='Nodes configured: {}'.format(self.node_connections)))
 
     def close(self):

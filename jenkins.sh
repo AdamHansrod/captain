@@ -14,6 +14,11 @@ if [ $? != 0 ] ; then
 fi
 rm -fr target
 mkdir target
+
+# Avoids nosetest coverage picking up references to code which no longer exists.
+find captain -name "*.pyc" -exec rm {} \;
+rm -f captain_web.pyc
+
 nosetests --with-xunit --xunit-file=target/nosetests.xml --with-xcover --xcoverage-file=target/coverage/coverage.xml --cover-package=captain --cover-erase --cover-html-dir=target/coverage --cover-html
 result=$?
 
