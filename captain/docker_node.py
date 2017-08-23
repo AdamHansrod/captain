@@ -28,7 +28,7 @@ class DockerNodeResolverFactory(object):
 
     def __create_aws_host_resolver(self, ec2_client, config):
         aws_host_resolver = AWSHostResolver(ec2_client,
-                                            aws_call_interval_secs=config.config.aws_call_interval_secs)
+                                            aws_call_interval_secs=config.aws_call_interval_secs)
         self.logger.debug(dict(Message={"Created AWSHostResolver"}))
         return aws_host_resolver
 
