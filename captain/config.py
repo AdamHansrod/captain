@@ -16,9 +16,9 @@ class Config(object):
         if len(self.docker_nodes) > 0 and self.aws_docker_host_tag_value is not None:
             raise Exception("DOCKER_NODES and AWS_DOCKER_HOST_TAG_VALUE are mutually exclusive")
 
-        if self.aws_docker_host_tag_value and self.docker_proxy_username and self.docker_proxy_password :
+        if self.aws_docker_host_tag_value and ( not self.docker_proxy_username or not self.docker_proxy_password ):
             raise Exception("If AWS_DOCKER_HOST_TAG_VALUE is specified then "
-                            "DOCKER_PROXY_USERNAME and DOCKER_PROXY_PASSWORD should also be.")
+                            "DOCKER_PROXY_USERNAME and DOCKER_PROXY_PASSWORD must be specified.")
 
         self.docker_gc_grace_period = int(os.getenv("DOCKER_GC_GRACE_PERIOD", "86400"))
         self.docker_timeout = int(os.getenv("DOCKER_TIMEOUT", "15"))

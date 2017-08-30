@@ -18,6 +18,8 @@ class TestConfig(unittest.TestCase):
     DEFAULT_SLOTS_PER_INSTANCE = "2"
     AWS_DOCKER_HOST_TAG_NAME = "ROLE"
     AWS_DOCKER_HOST_TAG_VALUE = "APPSERVERS"
+    DOCKER_PROXY_USERNAME = "USERNAME"
+    DOCKER_PROXY_PASSWORD = "PASSWORD"
     AWS_CALL_INTERVAL_SECS = "360"
     LOG_FILE_CONFIG_PATH = "/etc/captain/custom-logging-file.conf"
 
@@ -64,7 +66,9 @@ class TestConfig(unittest.TestCase):
             "SLUG_RUNNER_COMMAND": self.SLUG_RUNNER_COMMAND,
             "SLUG_RUNNER_IMAGE": self.SLUG_RUNNER_IMAGE,
             "AWS_DOCKER_HOST_TAG_NAME": self.AWS_DOCKER_HOST_TAG_NAME,
-            "AWS_DOCKER_HOST_TAG_VALUE": self.AWS_DOCKER_HOST_TAG_VALUE
+            "AWS_DOCKER_HOST_TAG_VALUE": self.AWS_DOCKER_HOST_TAG_VALUE,
+            "DOCKER_PROXY_USERNAME": self.DOCKER_PROXY_USERNAME,
+            "DOCKER_PROXY_PASSWORD": self.DOCKER_PROXY_PASSWORD
         }
         self.mock_environment(mock_getenv, environment)
 
@@ -103,6 +107,42 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.aws_docker_host_tag_name, "role")
         self.assertIsNone(config.aws_docker_host_tag_value)
         self.assertEqual(config.log_config_file_path, "logging.conf")
+
+    @mock.patch("os.getenv")
+    def test_fails_when_aws_without_docker_username(self, mock_getenv):
+        # given
+        environment = {
+            "AWS_DOCKER_HOST_TAG_VALUE" : self.AWS_DOCKER_HOST_TAG_VALUE,
+            "DOCKER_PROXY_PASSWORD": self.DOCKER_PROXY_PASSWORD
+        }
+        self.mock_environment(mock_getenv, environment)
+
+        # when
+        with self.assertRaises(Exception) as cm:
+            Config()
+
+        # then
+        self.assertEquals("If AWS_DOCKER_HOST_TAG_VALUE is specified then "
+                          "DOCKER_PROXY_USERNAME and DOCKER_PROXY_PASSWORD must be specified.",
+                          cm.exception.message)
+
+    @mock.patch("os.getenv")
+    def test_fails_when_aws_without_docker_password(self, mock_getenv):
+        # given
+        environment = {
+            "AWS_DOCKER_HOST_TAG_VALUE" : self.AWS_DOCKER_HOST_TAG_VALUE,
+            "DOCKER_PROXY_USERNAME": self.DOCKER_PROXY_USERNAME,
+        }
+        self.mock_environment(mock_getenv, environment)
+
+        # when
+        with self.assertRaises(Exception) as cm:
+            Config()
+
+        # then
+        self.assertEquals("If AWS_DOCKER_HOST_TAG_VALUE is specified then "
+                          "DOCKER_PROXY_USERNAME and DOCKER_PROXY_PASSWORD must be specified.",
+                          cm.exception.message)
 
     @mock.patch("os.getenv")
     def test_fails_when_no_slug_runner_command_specified(self, mock_getenv):
