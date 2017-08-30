@@ -36,11 +36,15 @@ class TestAWSDockerNodeResolver(unittest.TestCase):
     def setUp(self):
         self.aws_docker_host_tag_name = 'role'
         self.aws_docker_host_tag_value = 'appservers'
+        self.docker_proxy_username = "username"
+        self.docker_proxy_password = "password"
         self.docker_nodes = ['1.1.1.1', '2.2.2.2']
         self.aws_host_resolver = MagicMock()
         self.under_test = AWSDockerNodeResolver(self.aws_host_resolver,
                                                 self.aws_docker_host_tag_name,
-                                                self.aws_docker_host_tag_value)
+                                                self.aws_docker_host_tag_value,
+                                                self.docker_proxy_username,
+                                                self.docker_proxy_password)
 
         self.aws_host_resolver.find_running_hosts_private_ip_by_tag = MagicMock(return_value=self.docker_nodes)
 
@@ -54,7 +58,7 @@ class TestAWSDockerNodeResolver(unittest.TestCase):
 
     def test_it_should_transform_aws_hosts_to_docker_nodes(self):
         # Given
-        expected_docker_nodes = ['https://1.1.1.1:9400', 'https://2.2.2.2:9400']
+        expected_docker_nodes = ['https://username:password@1.1.1.1:9400', 'https://username:password@2.2.2.2:9400']
 
         # When
         docker_nodes = self.under_test.get_docker_nodes()

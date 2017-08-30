@@ -11,8 +11,14 @@ class Config(object):
         self.aws_call_interval_secs = int(os.getenv("AWS_CALL_INTERVAL_SECS", "60"))
         self.aws_docker_host_tag_name = os.getenv("AWS_DOCKER_HOST_TAG_NAME", "role")
         self.aws_docker_host_tag_value = os.getenv("AWS_DOCKER_HOST_TAG_VALUE")
+        self.docker_proxy_username = os.getenv("DOCKER_PROXY_USERNAME")
+        self.docker_proxy_password = os.getenv("DOCKER_PROXY_PASSWORD")
         if len(self.docker_nodes) > 0 and self.aws_docker_host_tag_value is not None:
             raise Exception("DOCKER_NODES and AWS_DOCKER_HOST_TAG_VALUE are mutually exclusive")
+
+        if self.aws_docker_host_tag_value and self.docker_proxy_username and self.docker_proxy_password :
+            raise Exception("If AWS_DOCKER_HOST_TAG_VALUE is specified then "
+                            "DOCKER_PROXY_USERNAME and DOCKER_PROXY_PASSWORD should also be.")
 
         self.docker_gc_grace_period = int(os.getenv("DOCKER_GC_GRACE_PERIOD", "86400"))
         self.docker_timeout = int(os.getenv("DOCKER_TIMEOUT", "15"))
