@@ -1,7 +1,7 @@
 import logging
 import unittest
 from mock import patch, MagicMock, call
-from captain.connection import Connection
+from captain.docker_controller import DockerController
 from captain import exceptions
 from captain.tests.util_mock import ClientMock
 from requests.exceptions import ConnectionError
@@ -9,7 +9,7 @@ from testfixtures import LogCapture
 import itertools
 
 
-class TestConnection(unittest.TestCase):
+class TestDockerController(unittest.TestCase):
 
     def setUp(self):
         self.config = MagicMock()
@@ -23,6 +23,9 @@ class TestConnection(unittest.TestCase):
         self.config.default_slots_per_instance = 2
         self.config.aws_docker_host_tag_name = None
         self.config.aws_docker_host_tag_value = None
+        self.docker_proxy_username = None
+        self.docker_proxy_password = None
+
 
         self.docker_node_resolver = MagicMock()
         self.docker_node_resolver.get_docker_nodes = MagicMock(return_value=["http://node-1/", "http://node-2/", "http://node-3/"])
@@ -33,7 +36,7 @@ class TestConnection(unittest.TestCase):
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         summary = connection.get_instance_summary()
 
         # then
@@ -59,7 +62,7 @@ class TestConnection(unittest.TestCase):
 
         # given
         with LogCapture(names='connection', level=logging.ERROR) as l:
-            connection = Connection(self.config, self.docker_node_resolver)
+            connection = DockerController(self.config, self.docker_node_resolver)
             l.check(
                 ('connection', 'ERROR', 'Could not obtain connection to docker node: http://node-3]. Exception: Invalid IPv6 URL')
             )
@@ -74,7 +77,7 @@ class TestConnection(unittest.TestCase):
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         #   get_instances is async and order isn't guaranteed, sort it for the tests
         instances = sorted(connection.get_instances(), key=lambda i: i["id"])
 
@@ -128,7 +131,7 @@ class TestConnection(unittest.TestCase):
         uuid_mock.return_value = 'SOME-UUID'
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         started_instance = connection.start_instance(
             "paye", "https://host/paye_216.tgz", "node-1", None,
             {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
@@ -195,7 +198,7 @@ class TestConnection(unittest.TestCase):
         uuid_mock.return_value = 'SOME-OTHER-UUID'
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         started_instance = connection.start_instance(
             "paye", "https://host/paye_216.tgz", "node-1", None,
             {'HMRC_CONFIG': "-Dapplication.log=INFO -Drun.mode=Prod -Dlogger.resource=/application-json-logger.xml -Dhttp.port=8080",
@@ -224,7 +227,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         result = connection.stop_instance("80be2a9e62ba00")
 
         # then
@@ -242,7 +245,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         result = connection.stop_instance("80be2a9e62ba00")
 
         # then
@@ -260,7 +263,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         result = connection.stop_instance("nonexisting-instance")
 
         # then
@@ -278,7 +281,7 @@ class TestConnection(unittest.TestCase):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         # Force an over capacity error
         current_slot_count = sum([i["slots"] for i in connection.get_instances() if i['node'] == 'node-1'])
         self.assertTrue(current_slot_count != self.config.slots_per_node)
@@ -292,7 +295,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_get_node_details(self, docker_client):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
 
         self.assertRaises(exceptions.NoSuchNodeException, connection.get_node, "bum-node-1")
 
@@ -306,7 +309,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_get_logs(self, docker_client):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
 
         self.assertRaises(exceptions.NoSuchInstanceException, connection.get_logs, "non-existant")
 
@@ -323,7 +326,7 @@ class TestConnection(unittest.TestCase):
     @patch('docker.Client')
     def test_get_nodes(self, docker_client):
         (mock_client_node1, mock_client_node2, mock_client_node3) = ClientMock().mock_two_docker_nodes(docker_client)
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
 
         nodes = connection.get_nodes()
         self.assertTrue(len(nodes) == 3)
@@ -339,7 +342,7 @@ class TestConnection(unittest.TestCase):
         (docker_conn1, docker_conn2, docker_conn3) = ClientMock().mock_two_docker_nodes(docker_client)
 
         # when
-        connection = Connection(self.config, self.docker_node_resolver)
+        connection = DockerController(self.config, self.docker_node_resolver)
         # trigger gc
         connection.get_instances()
 

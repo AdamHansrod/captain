@@ -29,7 +29,7 @@ class TestApi(unittest.TestCase):
         test_response = self.test_app.get('/ping/ping')
         eq_(test_response.status_code, 204)
 
-    @patch('captain_web.Connection.start_instance')
+    @patch('captain_web.DockerController.start_instance')
     def test_start_instance_with_capacity_error(self, mock_captain_connection_start_instance):
         """
         When starting an instance and there are not enough slots we should have a 503 response with a json body containing the detail

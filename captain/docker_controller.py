@@ -20,11 +20,12 @@ lru_cache_size = 1024
 logger = logging.getLogger('connection')
 
 
-class Connection(object):
+class DockerController(object):
     def __init__(self, config, docker_node_resolver, verify=False):
         self.config = config
         self.docker_node_resolver = docker_node_resolver
         self.node_connections = {}
+
         docker_nodes = self.docker_node_resolver.get_docker_nodes()
 
         logger.debug(dict(message="Setting up docker clients for {} configured nodes".format(len(docker_nodes))))
@@ -34,11 +35,14 @@ class Connection(object):
                 address = urlparse(node)
                 docker_conn = self.__get_connection(address)
                 docker_conn.verify = verify
+
                 docker_conn.auth = (address.username, address.password)
+
                 self.node_connections[address.hostname] = docker_conn
             except Exception as e:
                 logger.exception('Could not obtain connection to docker node: {}. Exception: {}'.format(node, e))
         logger.debug(dict(message='Nodes configured: {}'.format(self.node_connections)))
+
 
     def close(self):
         for node in self.node_connections:
