@@ -8,7 +8,7 @@ from flask.ext.restful import reqparse
 
 from captain import exceptions
 from captain.config import Config
-from captain.connection import Connection
+from captain.docker_controller import DockerController
 from captain.docker_node import DockerNodeResolverFactory
 
 app_config = Config()
@@ -29,7 +29,7 @@ def get_captain_conn():
     persistent_captain_conn = getattr(current_app, '_persistent_captain_conn', None)
     if persistent_captain_conn is None:
         logger.debug(dict(message='No persistent captain connection, creating one'))
-        persistent_captain_conn = current_app._persistent_captain_conn = Connection(app_config, docker_node_resolver)
+        persistent_captain_conn = current_app._persistent_captain_conn = DockerController(app_config, docker_node_resolver)
     return persistent_captain_conn
 
 

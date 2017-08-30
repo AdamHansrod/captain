@@ -37,7 +37,10 @@ class DockerNodeResolverFactory(object):
         aws_host_resolver = self.__create_aws_host_resolver(ec2_client, config)
         return AWSDockerNodeResolver(aws_host_resolver,
                                      config.aws_docker_host_tag_name,
-                                     config.aws_docker_host_tag_value)
+                                     config.aws_docker_host_tag_value,
+                                     config.docker_proxy_username,
+                                     config.docker_proxy_password
+                                     )
 
     def __create_config_based_docker_node_resolver(self, config):
         return ConfigBasedDockerNodeResolver(config.docker_nodes)
@@ -69,15 +72,18 @@ class AWSDockerNodeResolver(DockerNodeResolver):
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self, aws_host_resolver, aws_docker_host_tag_name, aws_docker_host_tag_value):
+    def __init__(self, aws_host_resolver, aws_docker_host_tag_name, aws_docker_host_tag_value, docker_proxy_username, docker_proxy_password):
         self.aws_host_resolver = aws_host_resolver
         self.aws_docker_host_tag_name = aws_docker_host_tag_name
         self.aws_docker_host_tag_value = aws_docker_host_tag_value
+        self.docker_proxy_username = docker_proxy_username
+        self.docker_proxy_password = docker_proxy_password
 
     def get_docker_nodes(self):
         docker_hosts = self.aws_host_resolver.find_running_hosts_private_ip_by_tag(self.aws_docker_host_tag_name,
                                                                                    self.aws_docker_host_tag_value)
-        docker_nodes = ["https://{}:9400".format(docker_host) for docker_host in docker_hosts]
+
+        docker_nodes = ["https://{}:{}@{}:9400".format(self.docker_proxy_username, self.docker_proxy_password, docker_host) for docker_host in docker_hosts]
         return docker_nodes
 
     def __str__(self):
