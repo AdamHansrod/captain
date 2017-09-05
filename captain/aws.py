@@ -48,8 +48,13 @@ class AWSHostResolver(object):
 
             self.logger.info(dict(Message="Describe Instances Response: {}".format(describe_instances_response)))
 
-            if len(describe_instances_response['Reservations']) > 0:
-                self.instances = describe_instances_response['Reservations'][0]['Instances']
+            reservations = describe_instances_response['Reservations']
+            if len(reservations) > 0:
+                aws_instances = []
+                for reservation in reservations:
+                    instances = reservation['Instances']
+                    aws_instances.extend(instances)
+                self.instances = aws_instances
             else:
                 self.instances = []
             self.aws_cache_expiry_time = datetime.utcnow() + timedelta(seconds=self.aws_call_interval_secs)
