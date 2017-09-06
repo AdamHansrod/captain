@@ -28,94 +28,13 @@ class TestAWSHostResolver(unittest.TestCase):
     @mock_ec2
     def test_it_should_return_private_ip_addresses_of_tagged_hosts(self):
         # Given
-        # We're using reserved instances, which isn't covered by moto, so a manual response is put together
-        # From partial data from a live response and a moto response for create_instances
-        # https://github.com/spulec/moto/blob/master/moto/ec2/responses/reserved_instances.py#L12
         tag_name = 'role'
         tag_value = 'applicationservers'
 
         untagged_instances = self.ec2_resource.create_instances(ImageId='some-ami-id', MinCount=1, MaxCount=1)
-        tagged_instances = self.ec2_resource.create_instances(ImageId='some-ami-id', MinCount=1, MaxCount=1)
+        tagged_instances = self.ec2_resource.create_instances(ImageId='some-ami-id', MinCount=1, MaxCount=1, TagSpecifications=[{'ResourceType': 'instance', 'Tags': [{'Key': tag_name, 'Value': tag_value}]}])
 
-
-        ec2_client_mock = MagicMock()
-        self.under_test = AWSHostResolver(ec2_client_mock)
-
-        # When
-        ec2_client_mock.describe_instances.return_value = \
-            {
-
-                'Reservations': [
-                    # Tagged instance using values from generated moto response for the IP
-                    {
-
-                        'OwnerId': '1',
-
-                        'Groups': [],
-
-                        'Instances': [
-                            {
-
-                                'State': {
-
-                                    'Name': 'running',
-
-                                    'Code': 16
-                                },
-
-                                'PrivateIpAddress': tagged_instances[0].private_ip_address,
-
-                                'VpcId': 'vpc-1',
-
-                                'Placement': {
-
-                                    'AvailabilityZone': 'eu-west-2b',
-
-                                    'Tenancy': 'default',
-
-                                    'GroupName': ''
-                                },
-
-                                'InstanceId': 'i-2',
-
-                                'ClientToken': '5'
-                            }
-                        ],
-
-                        'ReservationId': 'r-1',
-
-                        'RequesterId': 'A',
-
-                        'Tags': [
-                            {
-
-                                'Key': 'Name',
-
-                                'Value': 'public_app_server'
-                            },
-                            {
-
-                                'Key': 'Role',
-
-                                'Value': 'app_server'
-                            },
-
-                            {
-
-                                'Key': 'Env',
-
-                                'Value': 'qa'
-                            },
-                            {
-
-                                'Key': 'Zone',
-
-                                'Value': 'public'
-                            }
-                        ]
-                    }
-                ]
-            }
+        #When
         actual_response = self.under_test.find_running_hosts_private_ip_by_tag(tag_name, tag_value)
 
         # Then
@@ -128,162 +47,13 @@ class TestAWSHostResolver(unittest.TestCase):
     @mock_ec2
     def test_it_should_return_private_ip_addresses_of_multiple_tagged_hosts(self):
         # Given
-        # We're using reserved instances, which isn't covered by moto, so a manual response is put together
-        # From partial data from a live response and a moto response for create_instances
-        # https://github.com/spulec/moto/blob/master/moto/ec2/responses/reserved_instances.py#L12
         tag_name = 'role'
         tag_value = 'applicationservers'
 
         untagged_instances = self.ec2_resource.create_instances(ImageId='some-ami-id', MinCount=1, MaxCount=1)
-        tagged_instances = self.ec2_resource.create_instances(ImageId='some-ami-id', MinCount=2, MaxCount=2)
-
-
-        ec2_client_mock = MagicMock()
-        self.under_test = AWSHostResolver(ec2_client_mock)
+        tagged_instances = self.ec2_resource.create_instances(ImageId='some-ami-id', MinCount=2, MaxCount=2, TagSpecifications=[{'ResourceType': 'instance', 'Tags': [{'Key': tag_name, 'Value': tag_value}]}])
 
         # When
-        ec2_client_mock.describe_instances.return_value = \
-            {
-
-                'Reservations': [
-                    # Tagged instance using values from generated moto response for the IP
-                    {
-
-                        'OwnerId': '1',
-
-                        'Groups': [],
-
-                        'Instances': [
-                            {
-
-                                'State': {
-
-                                    'Name': 'running',
-
-                                    'Code': 16
-                                },
-
-                                'PrivateIpAddress': tagged_instances[0].private_ip_address,
-
-                                'VpcId': 'vpc-1',
-
-                                'Placement': {
-
-                                    'AvailabilityZone': 'eu-west-2a',
-
-                                    'Tenancy': 'default',
-
-                                    'GroupName': ''
-                                },
-
-                                'InstanceId': 'i-1',
-
-                                'ClientToken': '4'
-                            }
-                        ],
-
-                        'ReservationId': 'r-1',
-
-                        'RequesterId': 'A',
-
-                        'Tags': [
-                            {
-
-                                'Key': 'Name',
-
-                                'Value': 'public_app_server'
-                            },
-                            {
-
-                                'Key': 'Role',
-
-                                'Value': 'app_server'
-                            },
-
-                            {
-
-                                'Key': 'Env',
-
-                                'Value': 'qa'
-                            },
-                            {
-
-                                'Key': 'Zone',
-
-                                'Value': 'public'
-                            }
-                        ]
-                    },
-                    # Tagged instance using values from generated moto response for the IP
-                    {
-
-                        'OwnerId': '1',
-
-                        'Groups': [],
-
-                        'Instances': [
-                            {
-
-                                'State': {
-
-                                    'Name': 'running',
-
-                                    'Code': 16
-                                },
-
-                                'PrivateIpAddress': tagged_instances[1].private_ip_address,
-
-                                'VpcId': 'vpc-1',
-
-                                'Placement': {
-
-                                    'AvailabilityZone': 'eu-west-2b',
-
-                                    'Tenancy': 'default',
-
-                                    'GroupName': ''
-                                },
-
-                                'InstanceId': 'i-2',
-
-                                'ClientToken': '5'
-                            }
-                        ],
-
-                        'ReservationId': 'r-1',
-
-                        'RequesterId': 'A',
-
-                        'Tags': [
-                            {
-
-                                'Key': 'Name',
-
-                                'Value': 'public_app_server'
-                            },
-                            {
-
-                                'Key': 'Role',
-
-                                'Value': 'app_server'
-                            },
-
-                            {
-
-                                'Key': 'Env',
-
-                                'Value': 'qa'
-                            },
-                            {
-
-                                'Key': 'Zone',
-
-                                'Value': 'public'
-                            }
-                        ]
-                    }
-                ]
-            }
         actual_response = self.under_test.find_running_hosts_private_ip_by_tag(tag_name, tag_value)
 
         # Then
